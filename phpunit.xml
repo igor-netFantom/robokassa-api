@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.2/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         executionOrder="depends,defects"
+         beStrictAboutCoverageMetadata="true"
+         cacheDirectory=".phpunit.cache"
+         beStrictAboutOutputDuringTests="true"
+         failOnRisky="true"
+         failOnWarning="true">
+    <coverage
+            ignoreDeprecatedCodeUnits="true"
+            disableCodeCoverageIgnore="true">
+        <report>
+            <clover outputFile="clover.xml"/>
+        </report>
+    </coverage>
+    <testsuites>
+        <testsuite name="Robokassa API tests">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+    <source restrictDeprecations="true" restrictNotices="true" restrictWarnings="true">
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
+</phpunit>
