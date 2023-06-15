@@ -36,31 +36,31 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Install PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php-version }}
-        coverage: none
+      - uses: actions/checkout@v3
 
-    - name: Validate composer.json and composer.lock
-      run: composer validate --strict
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
 
-#    - name: Cache Composer packages
-#      id: composer-cache
-#      uses: actions/cache@v3
-#      with:
-#        path: vendor
-#        key: ${{ runner.os }}-php${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
-      #        restore-keys: |
-      #          ${{ runner.os }}-php${{ matrix.php-version }}-
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict
 
-    - name: Install dependencies
-      run: composer update --prefer-dist --no-progress --no-interaction
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php${{ matrix.php-version }}-composer-${{ hashFiles('composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-php${{ matrix.php-version }}-composer-
 
-    - name: PHPUnit tests
-      run: vendor/bin/phpunit
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-progress --no-interaction
+
+      - name: PHPUnit tests
+        run: vendor/bin/phpunit
 
   code-coverage:
     name: Code Coverage
@@ -81,8 +81,17 @@ jobs:
           coverage: pcov
           tools: phpunit
 
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php8.2-composer-${{ hashFiles('composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-php8.2-composer-
+
       - name: Install dependencies
-        run: composer update --prefer-dist --no-progress --no-interaction --no-dev
+        run: composer update --prefer-dist --no-progress --no-interaction
 
       - name: PHPUnit coverage
         run: phpunit --coverage-clover=coverage.xml --coverage-text --colors
@@ -111,8 +120,17 @@ jobs:
           coverage: none
           tools: psalm
 
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php8.2-composer-${{ hashFiles('composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-php8.2-composer-
+
       - name: Install dependencies
-        run: composer update --prefer-dist --no-progress --no-interaction --no-dev
+        run: composer update --prefer-dist --no-progress --no-interaction
 
       - name: Psalm coverage
         run: psalm --shepherd
