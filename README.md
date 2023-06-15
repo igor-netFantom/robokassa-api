@@ -4,6 +4,9 @@ robokassa-api
 [![Total Downloads](http://poser.pugx.org/netfantom/robokassa-api/downloads)](https://packagist.org/packages/netfantom/robokassa-api)
 [![License](http://poser.pugx.org/netfantom/robokassa-api/license)](https://packagist.org/packages/netfantom/robokassa-api)
 [![PHP Version Require](http://poser.pugx.org/netfantom/robokassa-api/require/php)](https://packagist.org/packages/netfantom/robokassa-api)
+[![codecov](https://codecov.io/gh/igor-netFantom/robokassa-api/branch/main/graph/badge.svg?token=C9GXYO8JVB)](https://codecov.io/gh/igor-netFantom/robokassa-api)
+[![type-coverage](https://shepherd.dev/github/igor-netFantom/robokassa-api/coverage.svg)](https://shepherd.dev/github/igor-netfantom/robokassa-api)
+[![psalm-level](https://shepherd.dev/github/igor-netFantom/robokassa-api/level.svg)](https://shepherd.dev/github/igor-netfantom/robokassa-api)
 
 Данный компонент базовый набор методов для взаимодействия с Робокассой.
 
