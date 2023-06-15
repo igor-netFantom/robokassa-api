@@ -22,17 +22,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
+        os: [ ubuntu-latest, windows-latest ]
+        php-version: [ 8.1, 8.2 ]
+        include:
+          - coverage: coverage
+            os: ubuntu-latest
+            php-version: 8.2
 
-        php-version:
-          - "8.1"
-          - "8.2"
-
-        experimental:
-          - false
-          
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -42,7 +38,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          coverage: none
+          coverage: ${{ matrix.coverage && 'pcov' || 'none' }}
 
       - name: Validate composer.json and composer.lock
         run: composer validate --strict
@@ -60,77 +56,20 @@ jobs:
         run: composer update --prefer-dist --no-progress --no-interaction
 
       - name: PHPUnit tests
-        run: vendor/bin/phpunit
-
-  code-coverage:
-    name: Code Coverage
-
-    needs:
-      - unit-tests
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.2
-          coverage: pcov
-          tools: phpunit
-
-      - name: Cache Composer packages
-        id: composer-cache
-        uses: actions/cache@v3
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php8.2-composer-${{ hashFiles('composer.json') }}
-          restore-keys: |
-            ${{ runner.os }}-php8.2-composer-
-
-      - name: Install dependencies
-        run: composer update --prefer-dist --no-progress --no-interaction
-
-      - name: PHPUnit coverage
-        run: phpunit --coverage-clover=coverage.xml --coverage-text --colors
+        run: vendor/bin/phpunit ${{ matrix.coverage && '--coverage-clover=coverage.xml --coverage-text --colors' }}
 
       - name: Upload coverage reports to Codecov
+        if: ${{ matrix.coverage }}
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  psalm-coverage:
-    name: Psalm Coverage
-
-    needs:
-      - unit-tests
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install PHP
+      - name: Disable pcov before psalm
+        if: ${{ matrix.coverage }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.2
           coverage: none
-          tools: psalm
-
-      - name: Cache Composer packages
-        id: composer-cache
-        uses: actions/cache@v3
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php8.2-composer-${{ hashFiles('composer.json') }}
-          restore-keys: |
-            ${{ runner.os }}-php8.2-composer-
-
-      - name: Install dependencies
-        run: composer update --prefer-dist --no-progress --no-interaction
 
       - name: Psalm coverage
-        run: psalm --shepherd
+        if: ${{ matrix.coverage }}
+        run: vendor/bin/psalm --shepherd
