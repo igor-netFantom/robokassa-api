@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   unit-tests:
-    name: Unit Tests (PHP ${{ matrix.php-version }} ${{ matrix.os }})
+    name: Unit Tests (PHP ${{ matrix.php-version }} ${{ matrix.coverage }} ${{ matrix.os }})
     
     strategy:
       fail-fast: false
@@ -64,12 +64,6 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Disable pcov before psalm
-        if: ${{ matrix.coverage }}
-        uses: shivammathur/setup-php@v2
-        with:
-          coverage: none
 
       - name: Psalm coverage
         if: ${{ matrix.coverage }}
