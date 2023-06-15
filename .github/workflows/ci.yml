@@ -23,11 +23,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest ]
-        php-version: [ 8.1, 8.2, 8.3 ]
+        php-version: [ 8.1, 8.2 ]
         include:
           - coverage: coverage
             os: ubuntu-latest
-            php-version: 8.3
+            php-version: 8.2
 
     runs-on: ${{ matrix.os }}
 
@@ -39,7 +39,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           coverage: ${{ matrix.coverage && 'pcov' || 'none' }}
-          ini-values: ${{ !matrix.coverage && 'opcache.enable_cli=1' }}
+          ini-values: opcache.enable_cli=1
 
       - name: Validate composer.json and composer.lock
         run: composer validate --strict
@@ -70,7 +70,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           coverage: none
-          ini-values: opcache.enable_cli=1
 
       - name: Psalm coverage
         if: ${{ matrix.coverage }}
