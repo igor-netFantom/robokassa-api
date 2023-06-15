@@ -24,7 +24,8 @@ composer.lock
 # Mac DS_Store Files
 .DS_Store
 
-# other files
-/.phpunit.cache/
+# local PHPUnit settings and cache
+/phpunit.xml
 /.phpunit.result.cache
-/clover.xml
+
+# other files
