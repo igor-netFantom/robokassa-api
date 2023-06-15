@@ -9,7 +9,7 @@ use DateTime;
 class InvoiceOptions
 {
     public readonly string $outSum;
-    public readonly string|null|DateTime $expirationDate;
+    public readonly string|null $expirationDate;
 
     /**
      * @param float|string $outSum Требуемая к получению сумма

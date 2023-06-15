@@ -130,6 +130,9 @@ class RobokassaApi
      * то есть в GET запросе поле Receipt должно кодироваться дважды - urlencode(urlencode($Receipt)),
      * но в их демо магазине оно дополнительно **не закодировано и работает без этого**. Данный момент требует тщательной проверки.
      * {@link https://docs.robokassa.ru/fiscalization/}
+     * @param InvoiceOptions $invoiceOptions
+     * @return array<string, null|string>
+     * @throws JsonException
      */
     public function getPaymentParameters(InvoiceOptions $invoiceOptions): array
     {
@@ -139,7 +142,7 @@ class RobokassaApi
             'Description' => $invoiceOptions->description,
             'SignatureValue' => $invoiceOptions->signatureValue ?? $this->generateSignatureForPayment($invoiceOptions),
             'IncCurrLabel' => $invoiceOptions->incCurrLabel,
-            'InvId' => $invoiceOptions->invId,
+            'InvId' => isset($invoiceOptions->invId) ? (string)$invoiceOptions->invId : null,
             'Culture' => $invoiceOptions->culture?->value,
             'Encoding' => $invoiceOptions->encoding,
             'Email' => $invoiceOptions->email,
@@ -147,7 +150,7 @@ class RobokassaApi
             'OutSumCurrency' => $invoiceOptions->outSumCurrency?->value,
             'UserIp' => $invoiceOptions->userIP,
             'Receipt' => self::getEncodedReceipt($invoiceOptions),
-            'IsTest' => $this->isTest ? 1 : null,
+            'IsTest' => $this->isTest ? '1' : null,
             ...$invoiceOptions->getFormattedUserParameters()
         ];
     }
