@@ -9,6 +9,9 @@ namespace tests;
 use ArgumentCountError;
 use DateTime;
 use DateTimeZone;
+use Http\Discovery\Psr18Client;
+use netFantom\RobokassaApi\Exceptions\MissingRequestFactory;
+use netFantom\RobokassaApi\Exceptions\MissingStreamFactory;
 use netFantom\RobokassaApi\Exceptions\TooLongSmsMessageException;
 use netFantom\RobokassaApi\Options\Culture;
 use netFantom\RobokassaApi\Options\InvoiceOptions;
@@ -27,6 +30,8 @@ use netFantom\RobokassaApi\Response\ReceiptStatusResponse;
 use netFantom\RobokassaApi\Response\SmsSendResponse;
 use netFantom\RobokassaApi\RobokassaApi;
 use PHPUnit\Framework\TestCase as Unit;
+use tests\data\WrongPsr18ClientWithoutRequestFactory;
+use tests\data\WrongPsr18ClientWithoutStreamFactory;
 
 /**
  * @group robokassa
@@ -382,6 +387,18 @@ class RobokassaApiTest extends Unit
         $this->assertEquals($expectedSmsSendResponse, $smsSendResponse);
     }
 
+    public function testSetPsr18Client(): void
+    {
+        $robokassaApi = new RobokassaApi(
+            merchantLogin: 'robokassa_state',
+            password1: 'robokassatest',
+            password2: 'password#2',
+        );
+        $psr18Client = new Psr18Client();
+        $robokassaApi->setPsr18Client($psr18Client);
+        $this->assertSame($psr18Client, $robokassaApi->getPsr18Client());
+    }
+
     public function testSignature(): void
     {
         $robokassa = new RobokassaApi(
@@ -487,6 +504,30 @@ class RobokassaApiTest extends Unit
         $this->assertEquals(
             $expected,
             $returnUrl
+        );
+    }
+
+    public function testWrongPsr18ClientWithoutRequestFactory(): void
+    {
+        $this->expectException(MissingRequestFactory::class);
+
+        new RobokassaApi(
+            merchantLogin: 'robokassa_state',
+            password1: 'robokassatest',
+            password2: 'password#2',
+            psr18Client: new WrongPsr18ClientWithoutRequestFactory(),
+        );
+    }
+
+    public function testWrongPsr18ClientWithoutStreamFactory(): void
+    {
+        $this->expectException(MissingStreamFactory::class);
+
+        new RobokassaApi(
+            merchantLogin: 'robokassa_state',
+            password1: 'robokassatest',
+            password2: 'password#2',
+            psr18Client: new WrongPsr18ClientWithoutStreamFactory(),
         );
     }
 }
