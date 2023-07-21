@@ -8,6 +8,8 @@ use JsonSerializable;
 
 class Item implements JsonSerializable
 {
+    use JsonSerializeMethod;
+
     public readonly string $sum;
 
     /**
@@ -51,10 +53,5 @@ class Item implements JsonSerializable
         public readonly ?string $nomenclature_code = null,
     ) {
         $this->sum = number_format(num: (float)$sum, decimals: 2, thousands_separator: '');
-    }
-
-    public function jsonSerialize(): array
-    {
-        return array_filter((array)$this, static fn($value) => !is_null($value));
     }
 }

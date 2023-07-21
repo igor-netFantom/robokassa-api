@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace netFantom\RobokassaApi\Options;
 
+use netFantom\RobokassaApi\Exceptions\InvalidArgumentException;
+
 /**
  * Данные для фискализации
  */
@@ -19,5 +21,12 @@ class Receipt
         public readonly array $items,
         public readonly ?Sno $sno = null,
     ) {
+        foreach ($this->items as $item) {
+            if (!$item instanceof Item) {
+                throw new InvalidArgumentException(
+                    '$items must be array of Item objects'
+                );
+            }
+        }
     }
 }

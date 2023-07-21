@@ -54,4 +54,14 @@ class ReceiptTest extends Unit
             . '],"sno":"osn"}';
         $this->assertEquals($expected, $serializedReceipt);
     }
+
+    public function testWrongItems(): void
+    {
+        $this->expectExceptionMessage('$items must be array of Item objects');
+        /** @noinspection PhpParamsInspection */
+        new Receipt(
+            items: ['wrong'],
+            sno: Sno::osn
+        );
+    }
 }

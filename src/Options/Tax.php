@@ -34,4 +34,20 @@ enum Tax: string
      * – НДС чека по расчетной ставке 20/120
      */
     case vat120 = 'vat120';
+
+    public function getTaxSumFromItemSum(string $sum): string
+    {
+        return number_format(num: (float)$sum * $this->getTaxMultiplier(), decimals: 2, thousands_separator: '');
+    }
+
+    private function getTaxMultiplier(): float|int
+    {
+        return match ($this) {
+            self::none, self::vat0 => 0,
+            self::vat10 => 0.1,
+            self::vat110 => 10 / 110,
+            self::vat20 => 0.2,
+            self::vat120 => 20 / 120,
+        };
+    }
 }

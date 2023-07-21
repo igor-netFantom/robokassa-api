@@ -17,9 +17,14 @@ use netFantom\RobokassaApi\Options\OutSumCurrency;
 use netFantom\RobokassaApi\Options\PaymentMethod;
 use netFantom\RobokassaApi\Options\PaymentObject;
 use netFantom\RobokassaApi\Options\Receipt;
+use netFantom\RobokassaApi\Options\ReceiptStatusOptions;
 use netFantom\RobokassaApi\Options\ResultOptions;
+use netFantom\RobokassaApi\Options\SecondReceiptOptions;
 use netFantom\RobokassaApi\Options\Sno;
 use netFantom\RobokassaApi\Options\Tax;
+use netFantom\RobokassaApi\Response\ReceiptAttachResponse;
+use netFantom\RobokassaApi\Response\ReceiptStatusResponse;
+use netFantom\RobokassaApi\Response\SmsSendResponse;
 use netFantom\RobokassaApi\RobokassaApi;
 use PHPUnit\Framework\TestCase as Unit;
 
@@ -285,6 +290,96 @@ class RobokassaApiTest extends Unit
         ];
         $this->expectException(ArgumentCountError::class);
         new InvoiceOptions(...$wrongInvoiceOptionsArguments);
+    }
+
+    public function testReceiptStatus(): void
+    {
+        $robokassa = new RobokassaApi(
+            merchantLogin: 'robokassa_state',
+            password1: 'robokassatest',
+            password2: 'password#2',
+        );
+
+        $secondReceiptOptions = new ReceiptStatusOptions(
+            id: 34,
+        );
+        $response = $robokassa->receiptStatus($secondReceiptOptions);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $expectedBodyContent = '{"Code":"1000","Description":"Error","Statuses":null}';
+        $this->assertEquals($expectedBodyContent, (string)$response->getBody());
+
+        $expectedReceiptStatusResponse = new ReceiptStatusResponse(
+            Code: "1000",
+            Description: "Error",
+            Statuses: null
+        );
+        $receiptStatusResponse = $robokassa->getReceiptStatusResponseFromHttpResponse($response);
+        $this->assertEquals($expectedReceiptStatusResponse, $receiptStatusResponse);
+    }
+
+    public function testSecondReceiptAttach(): void
+    {
+        $robokassa = new RobokassaApi(
+            merchantLogin: 'robokassa_sell',
+            password1: 'robokassatest',
+            password2: 'password#2',
+        );
+
+        $secondReceiptOptions = new SecondReceiptOptions(
+            id: 14,
+            originId: 13,
+            url: 'https://www.robokassa.ru/',
+            total: 100,
+            items: [],
+            vats: [],
+        );
+        $response = $robokassa->secondReceiptAttach($secondReceiptOptions);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $expectedBodyContent = '{"ResultCode":"1000",'
+            . '"ResultDescription":'
+            . '"Exception of type \u0027Robox.Merchant.Util.Exceptions.MerchantNotFoundException\u0027 was thrown.",'
+            . '"OpKey":null}';
+        $this->assertEquals($expectedBodyContent, (string)$response->getBody());
+
+        $expectedReceiptAttachResponse = new ReceiptAttachResponse(
+            ResultCode: "1000",
+            ResultDescription: "Exception of type 'Robox.Merchant.Util.Exceptions.MerchantNotFoundException' was thrown.",
+            OpKey: null
+        );
+        $receiptAttachResponse = $robokassa->getReceiptAttachResponseFromHttpResponse($response);
+        $this->assertEquals($expectedReceiptAttachResponse, $receiptAttachResponse);
+    }
+
+    public function testSendSms(): void
+    {
+        $robokassa = new RobokassaApi(
+            merchantLogin: 'demo_merchant',
+            password1: 'Password#1',
+            password2: 'password#2',
+        );
+        $smsRequestData = $robokassa->getSendSmsRequestData(89991234567, 'All work fine!');
+        $expectedSmsRequestData = [
+            'login' => 'demo_merchant',
+            'phone' => 89991234567,
+            'message' => 'All work fine!',
+            'signature' => 'a6243e85f7cf7ca3627aa1f506619ef3',
+        ];
+        $this->assertEquals($expectedSmsRequestData, $smsRequestData);
+
+        $response = $robokassa->sendSms(89991234567, 'All work fine!');
+        $this->assertEquals(200, $response->getStatusCode());
+        $expectedBodyContent = '{"result":false,"errorCode":2,"errorMessage":"partner not found"}';
+        $this->assertEquals($expectedBodyContent, (string)$response->getBody());
+
+        $expectedSmsSendResponse = new SmsSendResponse(
+            result: false,
+            errorCode: 2,
+            errorMessage: 'partner not found',
+        );
+        $smsSendResponse = $robokassa->getSmsSendResponseFromHttpResponse($response);
+        $this->assertEquals($expectedSmsSendResponse, $smsSendResponse);
     }
 
     public function testSignature(): void
