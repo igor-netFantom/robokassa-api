@@ -348,8 +348,9 @@ class RobokassaApi
         }
 
         $this->checkPsr18Client();
-        /** @var RequestFactoryInterface&ClientInterface&StreamFactoryInterface $this- >psr18Client */
-        return $this->psr18Client;
+        /** @var RequestFactoryInterface&ClientInterface&StreamFactoryInterface $psr18Client */
+        $psr18Client = $this->psr18Client;
+        return $psr18Client;
     }
 
     public function getBase64SignedPostData(SecondReceiptOptions|ReceiptStatusOptions $options): string
