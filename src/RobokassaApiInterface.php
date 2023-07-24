@@ -41,6 +41,7 @@ interface RobokassaApiInterface
      * *(данный метод может пригодиться для самостоятельного формирования запроса)*
      * @param SecondReceiptOptions|ReceiptStatusOptions $options
      * @return string
+     * @throws JsonException
      */
     public function getBase64SignedPostData(SecondReceiptOptions|ReceiptStatusOptions $options): string;
 
