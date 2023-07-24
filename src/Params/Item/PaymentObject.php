@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Options;
+namespace netFantom\RobokassaApi\Params\Item;
 
 /**
  * Признак предмета расчёта. Этот параметр необязательный. Если этот параметр не передан клиентом,

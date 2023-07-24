@@ -6,10 +6,8 @@ declare(strict_types=1);
 
 namespace tests;
 
-use netFantom\RobokassaApi\Options\Item;
-use netFantom\RobokassaApi\Options\PaymentMethod;
-use netFantom\RobokassaApi\Options\PaymentObject;
-use netFantom\RobokassaApi\Options\Tax;
+use netFantom\RobokassaApi\Params\Item\{PaymentMethod, PaymentObject};
+use netFantom\RobokassaApi\Params\Receipt\{Item, Tax};
 use PHPUnit\Framework\TestCase as Unit;
 
 /**

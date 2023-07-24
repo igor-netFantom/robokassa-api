@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Options;
+namespace netFantom\RobokassaApi\Params\Receipt;
 
 use JsonSerializable;
+use netFantom\RobokassaApi\Options\JsonSerializeMethod;
+use netFantom\RobokassaApi\Params\Item\{PaymentMethod, PaymentObject};
 
 class Item implements JsonSerializable
 {

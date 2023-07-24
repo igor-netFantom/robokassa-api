@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Options;
+namespace netFantom\RobokassaApi\Results;
 
-class ResultOptions
+class InvoicePayResult
 {
     /**
      * @param float|string $outSum Требуемая к получению сумма

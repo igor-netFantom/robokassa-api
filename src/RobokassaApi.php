@@ -8,27 +8,14 @@ namespace netFantom\RobokassaApi;
 
 use Http\Discovery\Psr18Client;
 use JsonException;
-use netFantom\RobokassaApi\Exceptions\MissingRequestFactory;
-use netFantom\RobokassaApi\Exceptions\MissingStreamFactory;
-use netFantom\RobokassaApi\Exceptions\TooLongSmsMessageException;
-use netFantom\RobokassaApi\Options\InvoiceOptions;
-use netFantom\RobokassaApi\Options\Item;
-use netFantom\RobokassaApi\Options\Receipt;
-use netFantom\RobokassaApi\Options\ReceiptStatusOptions;
-use netFantom\RobokassaApi\Options\ResultOptions;
-use netFantom\RobokassaApi\Options\SecondReceiptOptions;
-use netFantom\RobokassaApi\Options\Vat;
-use netFantom\RobokassaApi\Response\ReceiptAttachResponse;
-use netFantom\RobokassaApi\Response\ReceiptStatusResponse;
-use netFantom\RobokassaApi\Response\SmsSendResponse;
-use Psr\Http\Client\ClientExceptionInterface;
+use netFantom\RobokassaApi\Exceptions\{MissingRequestFactory, MissingStreamFactory, TooLongSmsMessageException};
+use netFantom\RobokassaApi\Options\{InvoiceOptions, ReceiptStatusOptions, SecondReceiptOptions};
+use netFantom\RobokassaApi\Params\Receipt\Vat;
+use netFantom\RobokassaApi\Results\{InvoicePayResult, ReceiptAttachResult, ReceiptStatusResult, SmsSendResult};
 use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\{RequestFactoryInterface, RequestInterface, ResponseInterface, StreamFactoryInterface};
 
-class RobokassaApi
+class RobokassaApi implements RobokassaApiInterface
 {
     /**
      * @param string $merchantLogin Идентификатор магазина
@@ -69,10 +56,7 @@ class RobokassaApi
         }
     }
 
-    /**
-     * @return void
-     */
-    public function checkPsr18Client(): void
+    private function checkPsr18Client(): void
     {
         if (!$this->psr18Client instanceof RequestFactoryInterface) {
             throw new MissingRequestFactory(
@@ -87,15 +71,9 @@ class RobokassaApi
         }
     }
 
-    /**
-     * Получение параметров результата {@see ResultOptions} от Робокассы
-     * из массива GET или POST параметров HTTP запроса
-     * @param array<string, string> $requestParameters
-     * @return ResultOptions
-     */
-    public static function getResultOptionsFromRequestArray(array $requestParameters): ResultOptions
+    public static function getInvoicePayResultFromRequestArray(array $requestParameters): InvoicePayResult
     {
-        return new ResultOptions(
+        return new InvoicePayResult(
             outSum: $requestParameters['OutSum'],
             invId: isset($requestParameters['InvId']) ? (int)$requestParameters['InvId'] : null,
             signatureValue: $requestParameters['SignatureValue'],
@@ -108,7 +86,7 @@ class RobokassaApi
      * @param array<string,string> $requestParameters
      * @return array<string, string>
      */
-    public static function getUserParametersFromRequestArray(array $requestParameters): array
+    private static function getUserParametersFromRequestArray(array $requestParameters): array
     {
         $userParameters = array_filter(
             $requestParameters,
@@ -122,10 +100,6 @@ class RobokassaApi
         return $userParametersWithoutPrefix;
     }
 
-    /**
-     * @param Item[] $items
-     * @return Vat[]
-     */
     public static function getVatsFromItems(array $items): array
     {
         $vats = [];
@@ -135,23 +109,20 @@ class RobokassaApi
         return $vats;
     }
 
-    /**
-     * Проверка корректности подписи параметров результата {@see ResultOptions} от Робокассы
-     */
-    public function checkSignature(ResultOptions $resultOptions): bool
+    public function checkSignature(InvoicePayResult $invoicePayResult): bool
     {
-        return $this->getValidSignatureForResult($resultOptions) === strtolower($resultOptions->signatureValue);
+        return $this->getValidSignatureForResult($invoicePayResult) === strtolower($invoicePayResult->signatureValue);
     }
 
     /**
-     * Получение правильной подписи для параметров результата {@see ResultOptions} от Робокассы
+     * Получение правильной подписи для параметров результата {@see InvoicePayResult} от Робокассы
      */
-    public function getValidSignatureForResult(ResultOptions $resultOptions): string
+    private function getValidSignatureForResult(InvoicePayResult $invoicePayResult): string
     {
-        $signature = "$resultOptions->outSum:$resultOptions->invId";
+        $signature = "$invoicePayResult->outSum:$invoicePayResult->invId";
         $signature .= ":$this->password2";
-        if (!empty($resultOptions->userParameters)) {
-            $signature .= ':' . $this->implodeUserParameters($resultOptions->userParameters);
+        if (!empty($invoicePayResult->userParameters)) {
+            $signature .= ':' . $this->implodeUserParameters($invoicePayResult->userParameters);
         }
 
         return strtolower($this->encryptSignature($signature));
@@ -175,30 +146,11 @@ class RobokassaApi
         return hash($this->hashAlgo, $signature);
     }
 
-    /**
-     * Получение URL для оплаты счета с указанными параметрами
-     * (GET запрос длиной более 2083 символов может не работать,
-     * поэтому счет на оплату с чеком {@see Receipt} рекомендуется
-     * отправлять, формирую форму с параметрами {@see RobokassaApi::getPaymentParameters()}
-     * и методом отправки POST)
-     */
     public function getPaymentUrl(InvoiceOptions $invoiceOptions): string
     {
         return $this->paymentUrl . '?' . http_build_query($this->getPaymentParameters($invoiceOptions));
     }
 
-    /**
-     * Получает параметры платежа для передачи в Робокассу
-     *
-     * # ВНИМАНИЕ
-     * В инструкции сказано, что поле Receipt на данном этапе должно быть закодирован через **urlencode() ДО отправки**,
-     * то есть в GET запросе поле Receipt должно кодироваться дважды - urlencode(urlencode($Receipt)),
-     * но в их демо магазине оно дополнительно **не закодировано и работает без этого**. Данный момент требует тщательной проверки.
-     * {@link https://docs.robokassa.ru/fiscalization/}
-     * @param InvoiceOptions $invoiceOptions
-     * @return array<string, null|string>
-     * @throws JsonException
-     */
     public function getPaymentParameters(InvoiceOptions $invoiceOptions): array
     {
         return [
@@ -220,6 +172,13 @@ class RobokassaApi
         ];
     }
 
+    public function smsRequest(int $phone, string $message): RequestInterface
+    {
+        $requestData = $this->getSendSmsData($phone, $message);
+        $requestUri = $this->smsUrl . '?' . http_build_query($requestData);
+        return $this->getPsr18Client()->createRequest('GET', $requestUri);
+    }
+
     /**
      * Формирование и кодирование подписи:
      *
@@ -229,7 +188,7 @@ class RobokassaApi
      * Максимальный вариант подписи до кодирования
      * MerchantLogin:OutSum:InvId:OutSumCurrency:UserIp:Receipt:Пароль#1:Shp_...=...:Shp_...=...
      */
-    public function generateSignatureForPayment(InvoiceOptions $invoiceOptions): string
+    private function generateSignatureForPayment(InvoiceOptions $invoiceOptions): string
     {
         $signature = "$this->merchantLogin:$invoiceOptions->outSum:$invoiceOptions->invId";
         $signature .= isset($invoiceOptions->outSumCurrency) ? ":{$invoiceOptions->outSumCurrency->value}" : '';
@@ -257,17 +216,17 @@ class RobokassaApi
         );
     }
 
-    public function getReceiptAttachResponseFromHttpResponse(ResponseInterface $response): ReceiptAttachResponse
+    public function getReceiptAttachResult(ResponseInterface $response): ReceiptAttachResult
     {
         $jsonObject = $this->parseResponseToJsonObject($response);
-        return new ReceiptAttachResponse(
+        return new ReceiptAttachResult(
             ResultCode: isset($jsonObject->ResultCode) ? (string)$jsonObject->ResultCode : null,
             ResultDescription: isset($jsonObject->ResultDescription) ? (string)$jsonObject->ResultDescription : null,
             OpKey: isset($jsonObject->OpKey) ? (string)$jsonObject->OpKey : null,
         );
     }
 
-    public function parseResponseToJsonObject(ResponseInterface $response): object
+    private function parseResponseToJsonObject(ResponseInterface $response): object
     {
         /** @var object $jsonObject */
         $jsonObject = json_decode(
@@ -279,10 +238,10 @@ class RobokassaApi
         return $jsonObject;
     }
 
-    public function getReceiptStatusResponseFromHttpResponse(ResponseInterface $response): ReceiptStatusResponse
+    public function getReceiptStatusResult(ResponseInterface $response): ReceiptStatusResult
     {
         $jsonObject = $this->parseResponseToJsonObject($response);
-        return new ReceiptStatusResponse(
+        return new ReceiptStatusResult(
             Code: isset($jsonObject->Code) ? (string)$jsonObject->Code : null,
             Description: isset($jsonObject->Description) ? (string)$jsonObject->Description : null,
             Statuses: (isset($jsonObject->Statuses) && is_array($jsonObject->Statuses)) ? $jsonObject->Statuses : null,
@@ -294,10 +253,10 @@ class RobokassaApi
         );
     }
 
-    public function getSmsSendResponseFromHttpResponse(ResponseInterface $response): SmsSendResponse
+    public function getSmsSendResult(ResponseInterface $response): SmsSendResult
     {
         $jsonObject = $this->parseResponseToJsonObject($response);
-        return new SmsSendResponse(
+        return new SmsSendResult(
             result: isset($jsonObject->result) && $jsonObject->result,
             errorCode: isset($jsonObject->errorCode) ? (int)$jsonObject->errorCode : 9999,
             errorMessage: isset($jsonObject->errorMessage) ? (string)$jsonObject->errorMessage : '',
@@ -305,28 +264,7 @@ class RobokassaApi
         );
     }
 
-    /**
-     * Получение статуса чека
-     * Для отправки запроса используется любой PSR-18 Http Client.
-     *
-     * ### Результат отправки запроса можно узнать:
-     * - или напрямую из полученного Psr\Http\Message\ResponseInterface
-     * - или преобразовав ответ в {@see ReceiptStatusResponse} с помощью
-     * {@see RobokassaApi::getReceiptStatusResponseFromHttpResponse()}
-     *
-     * ### Пример:
-     * ```php
-     * $response = $robokassa->receiptStatus(new ReceiptStatusOptions(
-     *     id: 34,
-     * ));
-     * $receiptStatusResponse = $robokassa->getReceiptStatusResponseFromHttpResponse($response);
-     * ```
-     *
-     * @param ReceiptStatusOptions $secondReceiptOptions
-     * @return ResponseInterface
-     * @throws ClientExceptionInterface
-     */
-    public function receiptStatus(ReceiptStatusOptions $secondReceiptOptions): ResponseInterface
+    public function getReceiptStatus(ReceiptStatusOptions $secondReceiptOptions): ResponseInterface
     {
         $request = $this->receiptStatusRequest($secondReceiptOptions);
         return $this->getPsr18Client()->sendRequest($request);
@@ -372,50 +310,17 @@ class RobokassaApi
      * @param string $string
      * @return string
      */
-    protected function clearBase64Encode(string $string): string
+    private function clearBase64Encode(string $string): string
     {
         return rtrim(base64_encode($string), '=');
     }
 
-    /**
-     * @param string $encodedSecondReceipt
-     * @return string
-     */
-    public function generateSignatureForSecondReceipt(string $encodedSecondReceipt): string
+    private function generateSignatureForSecondReceipt(string $encodedSecondReceipt): string
     {
         return $this->clearBase64Encode($this->encryptSignature($encodedSecondReceipt . $this->password1));
     }
 
-    /**
-     * Отправка второго чека
-     * Для отправки используется любой PSR-18 Http Client.
-     *
-     * ### Результат отправки можно узнать:
-     * - или напрямую из полученного Psr\Http\Message\ResponseInterface
-     * - или преобразовав ответ в {@see ReceiptAttachResponse} с помощью
-     * {@see RobokassaApi::getReceiptAttachResponseFromHttpResponse()}
-     *
-     * ### Пример:
-     * ```php
-     * $items = [
-     *      new Item(
-     *          // ...
-     *      ),
-     * ];
-     * $response = $robokassa->secondReceiptAttach(new SecondReceiptOptions(
-     *      // ...
-     *      items: $items,
-     *      vats: RobokassaApi::getVatsFromItems($items),
-     *      // ...
-     * ));
-     * $receiptAttachResponse = $robokassa->getReceiptAttachResponseFromHttpResponse($response);
-     * ```
-     *
-     * @param SecondReceiptOptions $secondReceiptOptions
-     * @return ResponseInterface
-     * @throws ClientExceptionInterface
-     */
-    public function secondReceiptAttach(SecondReceiptOptions $secondReceiptOptions): ResponseInterface
+    public function sendSecondReceiptAttach(SecondReceiptOptions $secondReceiptOptions): ResponseInterface
     {
         $request = $this->secondReceiptAttachRequest($secondReceiptOptions);
         return $this->getPsr18Client()->sendRequest($request);
@@ -429,49 +334,13 @@ class RobokassaApi
             ->withBody($this->getPsr18Client()->createStream($postData));
     }
 
-    /**
-     * Отправка СМС.
-     * Для отправки используется любой PSR-18 Http Client.
-     *
-     * ### Результат отправки можно узнать:
-     * - или напрямую из полученного Psr\Http\Message\ResponseInterface
-     * - или преобразовав ответ в {@see SmsSendResponse} с помощью
-     * {@see RobokassaApi::getSmsSendResponseFromHttpResponse()}
-     *
-     * ### Пример:
-     * ```
-     * $response = $robokassaApi->sendSms(89991234567, 'All work fine!');
-     * $smsSendResponse = $robokassaApi->getSmsSendResponseFromHttpResponse($response);
-     * ```
-     * @param int $phone Номер телефона в международном формате без символа «+». Например, 8999*******.
-     * @param string $message строка в кодировке UTF-8 длиной до 128 символов, содержащая текст отправляемого SMS.
-     * @return ResponseInterface
-     * @throws ClientExceptionInterface
-     */
     public function sendSms(int $phone, string $message): ResponseInterface
     {
-        $requestData = $this->getSendSmsRequestData($phone, $message);
-        $requestUri = $this->smsUrl . '?' . http_build_query($requestData);
-        $request = $this->getPsr18Client()->createRequest('GET', $requestUri);
+        $request = $this->smsRequest($phone, $message);
         return $this->getPsr18Client()->sendRequest($request);
     }
 
-    /**
-     * Получение массива данных для формирования запроса отправки СМС.
-     * ### Результат в формате:
-     * ```
-     * [
-     *     'login' => ...,
-     *     'phone' => $phone,
-     *     'message' => $message,
-     *     'signature' => ...
-     * ]
-     * ```
-     * @param int $phone Номер телефона в международном формате без символа «+». Например, 8999*******.
-     * @param string $message строка в кодировке UTF-8 длиной до 128 символов, содержащая текст отправляемого SMS.
-     * @return array
-     */
-    public function getSendSmsRequestData(int $phone, string $message): array
+    public function getSendSmsData(int $phone, string $message): array
     {
         if (mb_strlen($message) > 128) {
             throw new TooLongSmsMessageException();

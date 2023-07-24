@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace netFantom\RobokassaApi\Options;
 
 use netFantom\RobokassaApi\Exceptions\InvalidArgumentException;
+use netFantom\RobokassaApi\Params\Receipt\{Client, Item, Payment, Sno, Vat};
 
 /**
  * Данные для фискализации

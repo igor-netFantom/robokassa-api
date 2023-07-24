@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Options;
+namespace netFantom\RobokassaApi\Params\Receipt;
 
 /**
  * Обязательное поле. Это поле устанавливает налоговую ставку в ККТ.

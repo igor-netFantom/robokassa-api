@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Options;
+namespace netFantom\RobokassaApi\Params\Receipt;
 
 /**
  * Тип и сумма платежа или чека для формирования второго чека.

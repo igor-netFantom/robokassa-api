@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Options;
+namespace netFantom\RobokassaApi\Params\Receipt;
 
 /**
  * Система налогообложения. Необязательное поле, если у организации имеется только один тип налогообложения.

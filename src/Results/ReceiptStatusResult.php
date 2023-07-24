@@ -4,9 +4,9 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Response;
+namespace netFantom\RobokassaApi\Results;
 
-class ReceiptStatusResponse
+class ReceiptStatusResult
 {
     /** Ожидание регистрации */
     public const RESULT_CODE_WAITING = '1';

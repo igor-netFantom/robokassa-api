@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Options;
+namespace netFantom\RobokassaApi\Params\Receipt;
 
 /**
  * Данные о покупателе для формирования второго чека. Содержит любое из полей или все поля одновременно.

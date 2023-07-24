@@ -4,9 +4,9 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Response;
+namespace netFantom\RobokassaApi\Results;
 
-class SmsSendResponse
+class SmsSendResult
 {
     /** Запрос обработан успешно */
     public const RESULT_CODE_OK = 0;

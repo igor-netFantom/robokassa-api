@@ -4,14 +4,9 @@ declare(strict_types=1);
 
 namespace tests;
 
-use netFantom\RobokassaApi\Options\Client;
-use netFantom\RobokassaApi\Options\Item;
-use netFantom\RobokassaApi\Options\Payment;
-use netFantom\RobokassaApi\Options\PaymentMethod;
-use netFantom\RobokassaApi\Options\PaymentObject;
 use netFantom\RobokassaApi\Options\SecondReceiptOptions;
-use netFantom\RobokassaApi\Options\Sno;
-use netFantom\RobokassaApi\Options\Tax;
+use netFantom\RobokassaApi\Params\Item\{PaymentMethod, PaymentObject};
+use netFantom\RobokassaApi\Params\Receipt\{Client, Item, Payment, Sno, Tax};
 use netFantom\RobokassaApi\RobokassaApi;
 use PHPUnit\Framework\TestCase;
 
@@ -96,7 +91,7 @@ class SecondReceiptOptionsTest extends TestCase
             password2: 'password#2',
         );
         $secondReceiptOptions->merchantId = null;
-        $secondReceiptPostDateWithSignature = $robokassa->getBase64SignedPostData($secondReceiptOptions);
+        $secondReceiptPostDataWithSignature = $robokassa->getBase64SignedPostData($secondReceiptOptions);
         $expectedPostDataWithSignature = 'eyJvcGVyYXRpb24iOiJzZWxsIiwidG90YWwiOiIxMDAuMDAiLCJwYXltZW50cyI6W3sidHlwZSI'
             . '6Miwic3VtIjoiMTAwLjAwIn1dLCJpZCI6MTQsIm9yaWdpbklkIjoxMywidXJsIjoiaHR0cHM6Ly93d3cucm9ib2thc3NhLnJ1LyIsI'
             . 'ml0ZW1zIjpbeyJzdW0iOiIxMDAuMDAiLCJuYW1lIjoi0KLQvtCy0LDRgCIsInF1YW50aXR5IjoxLCJ0YXgiOiJub25lIiwicGF5bWV'
@@ -104,7 +99,7 @@ class SecondReceiptOptionsTest extends TestCase
             . 'CIsInR5cGUiOiJub25lIn1dLCJzbm8iOiJvc24iLCJjbGllbnQiOnsiZW1haWwiOiJ0ZXN0QHRlc3QucnUiLCJwaG9uZSI6IjcxMjM'
             . '0NTY3ODkwIn0sIm1lcmNoYW50SWQiOiJyb2JvLWRlbW8ifQ.OGNhYmQ0ZDQyNDZhNzQ4YWMyNTRhMWIxNWY0MDFlYmI';
 
-        $this->assertEquals($expectedPostDataWithSignature, $secondReceiptPostDateWithSignature);
+        $this->assertEquals($expectedPostDataWithSignature, $secondReceiptPostDataWithSignature);
     }
 
     public function testWrongItems(): void

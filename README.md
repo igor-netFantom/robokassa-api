@@ -13,7 +13,7 @@ robokassa-api
 Для работы требуется `PHP 8.1+` и любой `PSR-18 HTTP Client`
 
 Для настройки модуля, формирования запросов и обработки ответов используются объекты
-`InvoiceOptions`, `SecondReceiptOptions` и `ResultOptions`
+`InvoiceOptions`, `SecondReceiptOptions` и `InvoicePayResult`
 
 ## Установка с помощью Composer
 
@@ -34,8 +34,10 @@ composer require igor-netfantom/robokassa-api:@dev
 
 ## Настройка модуля
 
+https://docs.robokassa.ru/pay-interface/
+
 ```php
-$robokassaApi= new \netFantom\RobokassaApi\RobokassaApi(
+$robokassa = new \netFantom\RobokassaApi\RobokassaApi(
     merchantLogin: 'robo-demo',
     password1: 'password_1',
     password2: 'password_2',
@@ -44,180 +46,99 @@ $robokassaApi= new \netFantom\RobokassaApi\RobokassaApi(
 );
 ```
 
-`PSR-18 HTTP Client` клиент используется для отправки некоторых запросов<br>
-(формирование второго чека, получение статуса чека, отправка СМС)
-
 `RobokassaApi::psr18Client` указывать необязательно.
 
+`PSR-18 HTTP Client` используется для отправки некоторых запросов<br>
+(формирование второго чека, получение статуса чека, отправка СМС)
+
+Его можно изменить или получить после создания и настройки объекта RobokassaApi.
+
 При его отсутствии будет произведена попытка автоматического поиска
-подходящего уже установленного `PSR-18` HTTP клиента.
-
-## Объекты
-
-### Объект для формирования оплаты счета
+подходящего уже установленного `PSR-18 HTTP Client` с помощью
+[php-http/discovery](https://packagist.org/packages/php-http/discovery)
 
 ```php
-$invoiceOptions = new \netFantom\RobokassaApi\Options\InvoiceOptions(
-    outSum: 999.99,
-    invId: 1,
-    description: 'Description',
-    receipt: new \netFantom\RobokassaApi\Options\Receipt(
-        items: [
-            new \netFantom\RobokassaApi\Options\Item(
-                name: "Название товара 1",
-                quantity: 1,
-                sum: 100,
-                tax: \netFantom\RobokassaApi\Options\Tax::vat10,
-                payment_method: \netFantom\RobokassaApi\Options\PaymentMethod::full_payment,
-                payment_object: \netFantom\RobokassaApi\Options\PaymentObject::commodity,
-            ),
-            new \netFantom\RobokassaApi\Options\Item(
-                name: "Название товара 2",
-                quantity: 3,
-                sum: 450,
-                tax: \netFantom\RobokassaApi\Options\Tax::vat10,
-                payment_method: \netFantom\RobokassaApi\Options\PaymentMethod::full_payment,
-                payment_object: \netFantom\RobokassaApi\Options\PaymentObject::service,
-                cost: 150,
-                nomenclature_code: '04620034587217',
-            ),
-        ],
-        sno: \netFantom\RobokassaApi\Options\Sno::osn
-    ),
-    expirationDate: (new \DateTime('2030-01-01 10:20:30', new \DateTimeZone('+3'))),
-    email: 'user@email.com',
-    outSumCurrency: \netFantom\RobokassaApi\Options\OutSumCurrency::USD,
-    userIP: '127.0.0.1', 
-    incCurrLabel: null,
-    userParameters: [
-        'user_id'=>'123',
-        'parameter2'=>'parameter2_value',
-        // ...
-    ],
-    encoding: 'utf-8',
-    culture: \netFantom\RobokassaApi\Options\Culture::ru,
-)
-```
-
-### Объект для формирования второго чека
-
-```php
-$items = [
-    new Item(
-        name: 'Товар',
-        quantity: 1,
-        sum: 100,
-        tax: Tax::none,
-        payment_method: PaymentMethod::full_payment,
-        payment_object: PaymentObject::commodity
-    )
-];
-$secondReceiptOptions = new SecondReceiptOptions(
-    id: 14,
-    originId: 13,
-    url: 'https://www.robokassa.ru/',
-    total: 100,
-    items: $items,
-    vats: RobokassaApi::getVatsFromItems($items),
-    sno: Sno::osn,
-    client: new Client(
-        email: 'test@test.ru',
-        phone: '71234567890',
-    ),
-    payments: [
-        new Payment(100),
-    ],
+$robokassa = new \netFantom\RobokassaApi\RobokassaApi(
+    // ...
+    psr18Client: new \Http\Discovery\Psr18Client(),  // вручную указываем свой psr18Client 
+    // или
+    psr18Client: null,  // разрешить автоматический поиск подходящего psr18Client
 );
-```
 
-### Объект для обработки результата `отправки второго чека`
+$psr18Client = $robokassa->getPsr18Client(); // получение указанного psr18Client или поиск подходящего
 
-```php
- 
-/** @var \netFantom\RobokassaApi\Options\SecondReceiptOptions $secondReceiptOptions */
-/** @var \netFantom\RobokassaApi\RobokassaApi $robokassaApi */
-$response = $robokassaApi->secondReceiptAttach($secondReceiptOptions);
-
-$receiptAttachResponse = $robokassaApi->getReceiptAttachResponseFromHttpResponse($response);
-
-$receiptAttachResponse->ResultCode; // Статус получения данных от Клиента.
-$receiptAttachResponse->ResultDescription; // Описание результата обработки чека.
-$receiptAttachResponse->OpKey; // Идентификатор операции.
-```
-
-### Объект для обработки результата `получения статуса чека`
-
-```php
-/** @var \netFantom\RobokassaApi\RobokassaApi $robokassaApi */
-$response = $robokassaApi->receiptStatus(new \netFantom\RobokassaApi\Options\ReceiptStatusOptions(
-    id: 34,
-));
-
-$receiptStatusResponse = $robokassaApi->getReceiptStatusResponseFromHttpResponse($response);
-
-$receiptStatusResponse->Code; // Статус регистрации чека.
-$receiptStatusResponse->Description; // Описание результата формирования чека
-$receiptStatusResponse->Statuses;
-$receiptStatusResponse->FnNumber; // Номер ФН
-$receiptStatusResponse->FiscalDocumentNumber; // Фискальный номер документа
-$receiptStatusResponse->FiscalDocumentAttribute; // Фискальный признак документа
-$receiptStatusResponse->FiscalDate; // Дата и время формирования фискального чека
-$receiptStatusResponse->FiscalType;
-```
-
-### Объект для обработки результата `отправки СМС`
-
-```php
-/** @var \netFantom\RobokassaApi\RobokassaApi $robokassaApi */
-$response = $robokassaApi->sendSms(89991234567, 'All work fine!');
-$smsSendResponse = $robokassaApi->getSmsSendResponseFromHttpResponse($response);
-
-$smsSendResponse->result; // Значение логического типа, указывающее на общий успех или неуспех обработки запроса.
-$smsSendResponse->errorCode; // Целочисленное значение кода ошибки обработки
-$smsSendResponse->errorMessage; // Текстовое описание возникшей в процессе обработки запроса ошибки.
-$smsSendResponse->count; // Целочисленное значение, указывающее на количество SMS, доступное после этого запроса
-                               // (данное значение заполняется только в случае успешного исполнения запроса)
-```
-
-### Объект для получения и обработки ответа Робокассы об оплате
-
-```php
-/** @var \netFantom\RobokassaApi\Options\ResultOptions $resultOptions  */
-$resultOptions=\netFantom\RobokassaApi\RobokassaApi::getResultOptionsFromRequestArray($_POST);
-
-/** @var \netFantom\RobokassaApi\RobokassaApi $robokassaApi */
-if(!$robokassaApi->checkSignature($resultOptions)) {
-    throw new RuntimeException('Bad signature');
-}
-
-$resultOptions->invId; // номер счета
-$resultOptions->outSum; // сумма оплаты
-$resultOptions->signatureValue; // подпись
-$resultOptions->userParameters; // дополнительные пользовательские параметры
+$robokassa->setPsr18Client(new \Http\Discovery\Psr18Client()); // изменение psr18Client
 ```
 
 ## Методы
 
-### Методы для оплаты и отправки других запросов
+- [Получение параметров платежа для передачи в Робокассу](#получение-параметров-платежа-для-передачи-в-робокассу)
+- [Получение URL для оплаты счета с указанными параметрами](#получение-url-для-оплаты-счета-с-указанными-параметрами)
+- [Отправка второго чека](#отправка-второго-чека)
+- [Получение статуса чека](#получение-статуса-чека)
+- [Отправка СМС](#отправка-смс)
+- [Получение результата оплаты счета от Робокассы](#получение-результата-оплаты-счета-от-робокассы)
+- [Вспомогательные методы](#вспомогательные-методы)
+  - [Параметры для отправки СМС](#получение-данных-для-отправки-смс)
+  - [Формирование данных для отправки второго чека или проверки статуса чека](#получение-данных-для-отправки-второго-чека-или-проверки-статуса-чека)
 
-#### Получение URL для оплаты счета с указанными параметрами
-
-```php
-/**
- * (GET запрос длиной более 2083 символов может не работать,
- * поэтому счет на оплату с чеком Receipt рекомендуется
- * отправлять, формирую форму с параметрами RobokassaApi::getPaymentParameters()
- * и методом отправки POST)
- */
-public function getPaymentUrl(InvoiceOptions $invoiceOptions): string
-```
-
-#### Получает параметры платежа для передачи в Робокассу
+### Получение параметров платежа для передачи в Робокассу
 
 (для формирования `ФОРМЫ` оплаты с методом передачи POST запросом)
 
+https://docs.robokassa.ru/script-parameters/ <br>
+https://docs.robokassa.ru/fiscalization/
+
 ```php
-public function paymentParameters(InvoiceOptions $invoiceOptions): array
+use netFantom\RobokassaApi\Options\InvoiceOptions;
+use netFantom\RobokassaApi\Params\{Culture, OutSumCurrency, Receipt};
+use netFantom\RobokassaApi\Params\Item\{PaymentMethod, PaymentObject};
+use netFantom\RobokassaApi\Params\Receipt\{Item, Sno, Tax};
+use netFantom\RobokassaApi\RobokassaApi;
+
+$robokassa = new RobokassaApi(
+    // ...
+);
+$paymentParametersArray = $robokassa->getPaymentParameters(new InvoiceOptions(
+    outSum: 999.99,
+    invId: 1,
+    description: 'Description',
+    receipt: new Receipt(
+        items: [
+            new Item(
+                name: "Название товара 1",
+                quantity: 1,
+                sum: 100,
+                tax: Tax::vat10,
+                payment_method: PaymentMethod::full_payment,
+                payment_object: PaymentObject::commodity,
+            ),
+            new Item(
+                name: "Название товара 2",
+                quantity: 3,
+                sum: 450,
+                tax: Tax::vat10,
+                payment_method: PaymentMethod::full_payment,
+                payment_object: PaymentObject::service,
+                cost: 150,
+                nomenclature_code: '04620034587217',
+            ),
+        ],
+        sno: Sno::osn
+    ),
+    expirationDate: (new DateTime('2030-01-01 10:20:30', new DateTimeZone('+3'))),
+    email: 'user@email.com',
+    outSumCurrency: OutSumCurrency::USD,
+    userIP: '127.0.0.1',
+    incCurrLabel: null,
+    userParameters: [
+        'user_id' => '123',
+        'parameter2' => 'parameter2_value',
+        // ...
+    ],
+    encoding: 'utf-8',
+    culture: Culture::ru,
+));
 //[
 //    'MerchantLogin' => ...,
 //    'OutSum' => ...,
@@ -240,158 +161,271 @@ public function paymentParameters(InvoiceOptions $invoiceOptions): array
 //]
 ```
 
-#### Отправка второго чека
+### Получение URL для оплаты счета с указанными параметрами
+
+(GET запрос длиной более 2083 символов может не работать,
+поэтому счет на оплату с чеком Receipt рекомендуется
+отправлять, формирую форму с параметрами RobokassaApi::getPaymentParameters()
+и методом отправки POST)
+
+```php
+use netFantom\RobokassaApi\Options\InvoiceOptions;
+use netFantom\RobokassaApi\RobokassaApi;
+
+$robokassa = new RobokassaApi(
+    // ...
+);
+$invoiceOptions = new InvoiceOptions(
+    // ...
+);
+$url = $robokassa->getPaymentUrl($invoiceOptions);
+```
+
+### Отправка второго чека
 
 Для отправки используется любой PSR-18 Http Client.<br><br>
 Результат отправки можно узнать:
 
 - или напрямую из полученного Psr\Http\Message\ResponseInterface
-- или преобразовав ответ в
-  [ReceiptAttachResponse](#объект-для-обработки-результата-отправки-второго-чека)
-  с помощью RobokassaApi::getReceiptAttachResponseFromHttpResponse()
+- или преобразовав ответ в `ReceiptAttachResult` методом `getReceiptAttachResult()`
+
+https://docs.robokassa.ru/second-check/
 
 ```php
-/**
- * @param SecondReceiptOptions $secondReceiptOptions
- * @return ResponseInterface
- * @throws ClientExceptionInterface
- */
-public function secondReceiptAttach(SecondReceiptOptions $secondReceiptOptions): ResponseInterface
-```
+use Http\Discovery\Psr18Client;
+use netFantom\RobokassaApi\Options\SecondReceiptOptions;
+use netFantom\RobokassaApi\Params\Item\{PaymentMethod, PaymentObject};
+use netFantom\RobokassaApi\Params\Receipt\{Client, Item, Payment, Sno, Tax};
+use netFantom\RobokassaApi\Results\ReceiptAttachResult;
+use netFantom\RobokassaApi\RobokassaApi;
+use Psr\Http\Message\{RequestInterface, ResponseInterface};
 
-Пример отправки второго чека
-
-```php
+$robokassa = new RobokassaApi(
+    // ...
+);
 $items = [
-     new Item(
-         // ...
-     ),
+    new Item(
+        name: 'Товар',
+        quantity: 1,
+        sum: 100,
+        tax: Tax::none,
+        payment_method: PaymentMethod::full_payment,
+        payment_object: PaymentObject::commodity
+    )
 ];
-$response = $robokassa->secondReceiptAttach(new SecondReceiptOptions(
-     // ...
-     items: $items,
-     vats: RobokassaApi::getVatsFromItems($items),
-     // ...
+/** @var ResponseInterface $response */
+$response = $robokassa->sendSecondReceiptAttach(new SecondReceiptOptions(
+    id: 14,
+    originId: 13,
+    url: 'https://www.robokassa.ru/',
+    total: 100,
+    items: $items,
+    vats: RobokassaApi::getVatsFromItems($items),
+    sno: Sno::osn,
+    client: new Client(
+        email: 'test@test.ru',
+        phone: '71234567890',
+    ),
+    payments: [
+        new Payment(100),
+    ],
 ));
-$receiptAttachResponse = $robokassa->getReceiptAttachResponseFromHttpResponse($response);
+
+/** @var ReceiptAttachResult $receiptAttachResult */
+$receiptAttachResult = $robokassa->getReceiptAttachResult($response);
+
+$receiptAttachResult->ResultCode; // Статус получения данных от Клиента.
+$receiptAttachResult->ResultDescription; // Описание результата обработки чека.
+$receiptAttachResult->OpKey; // Идентификатор операции.
+
+// ИЛИ можно сформировать запрос для самостоятельной отправки PSR-18 HTTP клиентом:
+/** @var RequestInterface $request */
+$request = $robokassa->secondReceiptAttachRequest(new SecondReceiptOptions(
+    // ...
+));
+$response = (new Psr18Client())->sendRequest($request);
+$receiptAttachResult = $robokassa->getReceiptAttachResult($response);
 ```
 
-#### Получение статуса чека
+### Получение статуса чека
 
 Для отправки запроса используется любой PSR-18 Http Client.<br><br>
 Результат отправки запроса можно узнать:
 
-- или напрямую из полученного Psr\Http\Message\ResponseInterface
-- или преобразовав ответ в
-  [ReceiptStatusResponse](#объект-для-обработки-результата-получения-статуса-чека)
-  с помощью RobokassaApi::getReceiptStatusResponseFromHttpResponse()
+- или напрямую из полученного `Psr\Http\Message\ResponseInterface`
+- или преобразовав ответ в `ReceiptStatusResult` методом `getReceiptStatusResult()`
+
+https://docs.robokassa.ru/second-check/
 
 ```php
-/**
- * @param ReceiptStatusOptions $secondReceiptOptions
- * @return ResponseInterface
- * @throws ClientExceptionInterface
- */
-public function receiptStatus(ReceiptStatusOptions $secondReceiptOptions): ResponseInterface
-```
+use Http\Discovery\Psr18Client;
+use netFantom\RobokassaApi\Options\ReceiptStatusOptions;
+use netFantom\RobokassaApi\Results\ReceiptStatusResult;
+use netFantom\RobokassaApi\RobokassaApi;
+use Psr\Http\Message\{RequestInterface, ResponseInterface};
 
-Пример отправки запроса на получение статуса чека
-
-```php
-$response = $robokassa->receiptStatus(new ReceiptStatusOptions(
+$robokassa = new RobokassaApi(
+// ...
+);
+/** @var ResponseInterface $response */
+$response = $robokassa->getReceiptStatus(new ReceiptStatusOptions(
     id: 34,
 ));
-$receiptStatusResponse = $robokassa->getReceiptStatusResponseFromHttpResponse($response);
+
+/** @var ReceiptStatusResult $receiptStatusResult */
+$receiptStatusResult = $robokassa->getReceiptStatusResult($response);
+
+$receiptStatusResult->Code; // Статус регистрации чека.
+$receiptStatusResult->Description; // Описание результата формирования чека
+$receiptStatusResult->Statuses;
+$receiptStatusResult->FnNumber; // Номер ФН
+$receiptStatusResult->FiscalDocumentNumber; // Фискальный номер документа
+$receiptStatusResult->FiscalDocumentAttribute; // Фискальный признак документа
+$receiptStatusResult->FiscalDate; // Дата и время формирования фискального чека
+$receiptStatusResult->FiscalType;
+
+
+// ИЛИ можно сформировать запрос для самостоятельной отправки PSR-18 HTTP клиентом:
+/** @var RequestInterface $request */
+$request = $robokassa->receiptStatusRequest(new ReceiptStatusOptions(
+    id: 34,
+));
+$response = (new Psr18Client())->sendRequest($request);
+$receiptStatusResult = $robokassa->getReceiptStatusResult($response);
 ```
 
-#### Готовые параметры для *самостоятельного формирования* запроса на `$robokassaApi->smsUrl` для отправки СМС
-
-```php
-/**
- * @param int $phone Номер телефона в международном формате без символа «+». Например, 8999*******.
- * @param string $message строка в кодировке UTF-8 длиной до 128 символов, содержащая текст отправляемого SMS.
- * @return array
- */
-public function getSendSmsRequestData(int $phone, string $message): array
-//[
-//    'login' => ...,
-//    'phone' => $phone,
-//    'message' => $message,
-//    'signature' => ...
-//]
-```
-
-#### Отправка СМС
+### Отправка СМС
 
 Для отправки используется любой PSR-18 Http Client.<br><br>
 Результат отправки можно узнать:
 
 - или напрямую из полученного Psr\Http\Message\ResponseInterface
-- или преобразовав ответ в [SmsSendResponse](#объект-для-обработки-результата-отправки-смс) с помощью
-  RobokassaApi::getSmsSendResponseFromHttpResponse()
+- или преобразовав ответ в `SmsSendResult` методом `getSmsSendResult()`
+
+https://docs.robokassa.ru/sms/
 
 ```php
-/** * 
- * @param int $phone Номер телефона в международном формате без символа «+». Например, 8999*******.
- * @param string $message строка в кодировке UTF-8 длиной до 128 символов, содержащая текст отправляемого SMS.
- * @return ResponseInterface
- * @throws ClientExceptionInterface
- */
-public function sendSms(int $phone, string $message): ResponseInterface
+use Http\Discovery\Psr18Client;
+use netFantom\RobokassaApi\Results\SmsSendResult;
+use netFantom\RobokassaApi\RobokassaApi;
+use Psr\Http\Message\{RequestInterface, ResponseInterface};
+
+$robokassa = new RobokassaApi(
+    // ...
+);
+
+/** @var int $phone Номер телефона в международном формате без символа «+». Например, 8999*******. */
+$phone = 89991234567;
+
+/** @var string $message Строка в кодировке UTF-8 длиной до 128 символов, содержащая текст отправляемого SMS. */
+$message = 'All work fine!';
+
+/** @var ResponseInterface $response */
+$response = $robokassa->sendSms($phone, $message);
+
+/** @var SmsSendResult $smsSendResult */
+$smsSendResult = $robokassa->getSmsSendResult($response);
+
+$smsSendResult->result; // Значение логического типа, указывающее на общий успех или неуспех обработки запроса.
+$smsSendResult->errorCode; // Целочисленное значение кода ошибки обработки
+$smsSendResult->errorMessage; // Текстовое описание возникшей в процессе обработки запроса ошибки.
+$smsSendResult->count; // Целочисленное значение, указывающее на количество SMS, доступное после этого запроса
+                       // (данное значение заполняется только в случае успешного исполнения запроса)
+
+
+// ИЛИ можно сформировать запрос для самостоятельной отправки PSR-18 HTTP клиентом:
+/** @var RequestInterface $request */
+$request = $robokassa->smsRequest(
+    // ...
+);
+$response = (new Psr18Client())->sendRequest($request);
+$smsSendResult = $robokassa->getSmsSendResult($response);
 ```
 
-Пример отправки СМС
+### Получение результата оплаты счета от Робокассы
+
+Результат формируется из массива `GET` или `POST` параметров HTTP запроса полученного от Робкассы
+
+https://docs.robokassa.ru/pay-interface/
 
 ```php
-$response = $robokassaApi->sendSms(89991234567, 'All work fine!');
-$smsSendResponse = $robokassaApi->getSmsSendResponseFromHttpResponse($response);
+use netFantom\RobokassaApi\Results\InvoicePayResult;
+use netFantom\RobokassaApi\RobokassaApi;
+
+$robokassa = new RobokassaApi(
+    // ...
+);
+
+/** @var InvoicePayResult $invoicePayResult */
+$invoicePayResult = RobokassaApi::getInvoicePayResultFromRequestArray($_POST);
+
+/** Проверка подписи результата оплаты счета */
+if (!$robokassa->checkSignature($invoicePayResult)) {
+    throw new RuntimeException('Bad signature');
+}
+
+$invoicePayResult->invId; // номер счета
+$invoicePayResult->outSum; // сумма оплаты
+$invoicePayResult->signatureValue; // подпись
+$invoicePayResult->userParameters; // дополнительные пользовательские параметры
 ```
 
-#### Формирование и кодирование подписи `SignatureValue`
+### Вспомогательные методы
+
+#### Получение данных для отправки СМС
+
+*(данный метод может пригодиться для самостоятельного формирования запроса)*
+
+https://docs.robokassa.ru/sms/
 
 ```php
-/** 
- * Метода сам формирует нужный вариант подписи выкидывая null значения
- * 
- * Минимальный вариант подписи до кодирования
- * MerchantLogin:OutSum:Пароль#1
- * 
- * Максимальный вариант подписи до кодирования
- * MerchantLogin:OutSum:InvId:OutSumCurrency:UserIp:Receipt:Пароль#1:Shp_...=...:Shp_...=...
- */
-public function generateSignatureForPayment(InvoiceOptions $invoiceOptions): string
-```
+use netFantom\RobokassaApi\RobokassaApi;
 
-### Методы проверки ответа Робокассы
+$robokassa = new RobokassaApi(
+    // ...
+);
 
-#### Получение параметров результата `ResultOptions` от Робокассы<br> из массива `GET` или `POST` параметров HTTP запроса
+/** @var int $phone Номер телефона в международном формате без символа «+». Например, 8999*******. */
+$phone = 89991234567;
 
-```php
-public static function getResultOptionsFromRequestArray(array $requestParameters): ResultOptions
-// $resultOptions = \netFantom\RobokassaApi\RobokassaApi::getResultOptionsFromRequestArray($_GET);
-// $resultOptions = \netFantom\RobokassaApi\RobokassaApi::getResultOptionsFromRequestArray($_POST);
-```
+/** @var string $message строка в кодировке UTF-8 длиной до 128 символов, содержащая текст отправляемого SMS. */
+$message = 'All work fine!';
 
-#### Получение пользовательских параметров (`shp_...`) из массива `GET` или `POST` параметров
-
-```php
-// $requestParameters=[
-//     // ...
-//     'shp_user_id' => '123',
-//     'shp_parameter2' => 'parameter2_value',
-//     'shp_...' => ...,
-//     // ...
-// ];
-public static function getUserParametersFromRequestArray(array $requestParameters): array
+/** @var array $parameters */
+$parameters = $robokassa->getSendSmsData($phone, $message);
 // [
-//     'user_id'=>'123',
-//     'parameter2'=>'parameter2_value',
-//     '...' => ...,
+//    'login' => ...,
+//    'phone' => $phone,
+//    'message' => $message,
+//    'signature' => ...
 // ]
 ```
 
-#### Проверка корректности подписи параметров результата `ResultOptions` от Робокассы
+#### Получение данных для отправки второго чека или проверки статуса чека
+
+*(данный метод может пригодиться для самостоятельного формирования запроса)*
+
+Данные подписаны ключом робокассы и кодированы в Base64.
+
+https://docs.robokassa.ru/second-check/
 
 ```php
-public function checkSignature(ResultOptions $resultOptions): bool
+use netFantom\RobokassaApi\Options\SecondReceiptOptions;
+use netFantom\RobokassaApi\RobokassaApi;
+
+$robokassa = new RobokassaApi(
+    // ...
+);
+
+$secondReceiptData = $robokassa->getBase64SignedPostData(new SecondReceiptOptions(
+    // ...
+));
+
+// eyJtZXJjaGFudElkIjogInJvYm9rYXNzYV9zZWxsIiwiaWQiOiAiMTQiLCJvcmlnaW5JZCI6ICIxMyIsIm9wZXJh
+// dGlvbiI6ICJzZWxsIiwKInNubyI6ICJvc24iLCJ1cmwiOiAiaHR0cHM6Ly93d3cucm9ib2thc3NhLnJ1LyIsInRv
+// dGFsIjogMTAwLCJpdGVtcyI6IFt7Im5hbWUiOiAi0KLQvtCy0LDRgCIsInF1YW50aXR5IjogMSwic3VtIjogMTAw
+// LCJ0YXgiOiAibm9uZSIsInBheW1lbnRfbWV0aG9kIjogImZ1bGxfcGF5bWVudCIsInBheW1lbnRfb2JqZWN0Ijog
+// ImNvbW1vZGl0eSJ9XSwiY2xpZW50IjogeyJlbWFpbCI6ICJ0ZXN0QHRlc3QucnUiLCJwaG9uZSI6ICI3MTIzNDU2
+// Nzg5MCJ9LCJwYXltZW50cyI6IFt7InR5cGUiOiAyLCJzdW0iOiAxMDB9XSwidmF0cyI6IFt7InR5cGUiOiAibm9u
+// ZSIsInN1bSI6IDB9XX0.MzAwMTU4NjIwMTE0M2RhNDIzMjg5NmM0NDI0NGJkYmI
 ```
