@@ -18,8 +18,9 @@ use netFantom\RobokassaApi\Params\Receipt\{Item, Sno, Tax};
 use netFantom\RobokassaApi\Results\{InvoicePayResult, ReceiptAttachResult, ReceiptStatusResult, SmsSendResult};
 use netFantom\RobokassaApi\RobokassaApi;
 use PHPUnit\Framework\TestCase as Unit;
-use tests\data\WrongPsr18ClientWithoutRequestFactory;
-use tests\data\WrongPsr18ClientWithoutStreamFactory;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 
 /**
  * @group robokassa
@@ -51,6 +52,30 @@ class RobokassaApiTest extends Unit
             . '&Description=Description&SignatureValue=b98027823a17ee5be83c767f18315400&InvId=1&Encoding=utf-8'
             . '&ExpirationDate=2030-01-01T10%3A20%3A30.0000000%2B03%3A00&shp_email=user%40example.com&shp_user_id=1';
         $this->assertEquals($expected, $returnUrl);
+    }
+
+    public function testGetInvoicePayResultFromRequestArray(): void
+    {
+        $signatureValue = md5('100:1:password_2');
+        $email = 'test@exmaple.com';
+
+        $_POST['OutSum'] = 100;
+        $_POST['InvId'] = 1;
+        $_POST['SignatureValue'] = $signatureValue;
+        $_POST['shp_email'] = $email;
+
+        $expectedInvoicePayResult = new InvoicePayResult(
+            outSum: 100,
+            invId: 1,
+            signatureValue: $signatureValue,
+            userParameters: [
+                'email' => 'test@exmaple.com'
+            ]
+        );
+
+        $invoicePayResult = RobokassaApi::getInvoicePayResultFromRequestArray($_POST);
+
+        $this->assertEquals($expectedInvoicePayResult, $invoicePayResult);
     }
 
     public function testGetPaymentParameters(): void
@@ -114,57 +139,6 @@ class RobokassaApiTest extends Unit
             'IsTest' => null,
         ];
         $this->assertEquals($expectedPaymentParameters, $paymentParameters);
-    }
-
-    public function testGetInvoicePayResultFromRequestArray(): void
-    {
-        $signatureValue = md5('100:1:password_2');
-        $email = 'test@exmaple.com';
-
-        $_POST['OutSum'] = 100;
-        $_POST['InvId'] = 1;
-        $_POST['SignatureValue'] = $signatureValue;
-        $_POST['shp_email'] = $email;
-
-        $expectedInvoicePayResult = new InvoicePayResult(
-            outSum: 100,
-            invId: 1,
-            signatureValue: $signatureValue,
-            userParameters: [
-                'email' => 'test@exmaple.com'
-            ]
-        );
-
-        $invoicePayResult = RobokassaApi::getInvoicePayResultFromRequestArray($_POST);
-
-        $this->assertEquals($expectedInvoicePayResult, $invoicePayResult);
-    }
-
-    public function testgetSmsParameters(): void
-    {
-        $robokassa = new RobokassaApi(
-            merchantLogin: 'robo-demo',
-            password1: 'password#1',
-            password2: 'password#2',
-        );
-
-        $expectedParameters = [
-            'login' => 'robo-demo',
-            'phone' => 70001234567,
-            'message' => 'message text',
-            'signature' => '745a08955b089f7d4a64a24e6ba37611',
-        ];
-        $parameters = $robokassa->getSendSmsData(70001234567, 'message text');
-
-        $this->assertEquals($expectedParameters, $parameters);
-
-        $robokassa->getSendSmsData(70001234567, str_repeat('x', 128));
-
-        try {
-            $robokassa->getSendSmsData(70001234567, str_repeat('x', 129));
-            $this->fail('Expect ' . TooLongSmsMessageException::class);
-        } catch (TooLongSmsMessageException) {
-        }
     }
 
     public function testPaymentReceipt(): void
@@ -480,11 +454,15 @@ class RobokassaApiTest extends Unit
     {
         $this->expectException(MissingRequestFactory::class);
 
+        /** @noinspection PhpParamsInspection */
         new RobokassaApi(
             merchantLogin: 'robokassa_state',
             password1: 'robokassatest',
             password2: 'password#2',
-            psr18Client: new WrongPsr18ClientWithoutRequestFactory(),
+            psr18Client: $this->createMockForIntersectionOfInterfaces([
+                ClientInterface::class,
+                StreamFactoryInterface::class,
+            ]),
         );
     }
 
@@ -492,11 +470,42 @@ class RobokassaApiTest extends Unit
     {
         $this->expectException(MissingStreamFactory::class);
 
+        /** @noinspection PhpParamsInspection */
         new RobokassaApi(
             merchantLogin: 'robokassa_state',
             password1: 'robokassatest',
             password2: 'password#2',
-            psr18Client: new WrongPsr18ClientWithoutStreamFactory(),
+            psr18Client: $this->createMockForIntersectionOfInterfaces([
+                ClientInterface::class,
+                RequestFactoryInterface::class,
+            ]),
         );
+    }
+
+    public function testgetSmsParameters(): void
+    {
+        $robokassa = new RobokassaApi(
+            merchantLogin: 'robo-demo',
+            password1: 'password#1',
+            password2: 'password#2',
+        );
+
+        $expectedParameters = [
+            'login' => 'robo-demo',
+            'phone' => 70001234567,
+            'message' => 'message text',
+            'signature' => '745a08955b089f7d4a64a24e6ba37611',
+        ];
+        $parameters = $robokassa->getSendSmsData(70001234567, 'message text');
+
+        $this->assertEquals($expectedParameters, $parameters);
+
+        $robokassa->getSendSmsData(70001234567, str_repeat('x', 128));
+
+        try {
+            $robokassa->getSendSmsData(70001234567, str_repeat('x', 129));
+            $this->fail('Expect ' . TooLongSmsMessageException::class);
+        } catch (TooLongSmsMessageException) {
+        }
     }
 }
