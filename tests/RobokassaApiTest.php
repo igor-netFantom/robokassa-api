@@ -7,7 +7,7 @@ declare(strict_types=1);
 namespace tests;
 
 use ArgumentCountError;
-use DateTime;
+use DateTimeImmutable;
 use DateTimeZone;
 use Http\Discovery\Psr18Client;
 use netFantom\RobokassaApi\Exceptions\{MissingRequestFactory, MissingStreamFactory, TooLongSmsMessageException};
@@ -41,7 +41,7 @@ class RobokassaApiTest extends Unit
                 outSum: 10.00,
                 invId: 1,
                 description: 'Description',
-                expirationDate: (new DateTime('2030-01-01 10:20:30', new DateTimeZone('+3'))),
+                expirationDate: (new DateTimeImmutable('2030-01-01 10:20:30', new DateTimeZone('+3'))),
                 userParameters: [
                     'user_id' => 1,
                     'email' => 'user@example.com',

@@ -126,7 +126,7 @@ $paymentParametersArray = $robokassa->getPaymentParameters(new InvoiceOptions(
         ],
         sno: Sno::osn
     ),
-    expirationDate: (new DateTime('2030-01-01 10:20:30', new DateTimeZone('+3'))),
+    expirationDate: (new DateTimeImmutable())->add(new DateInterval('PT48H')),
     email: 'user@email.com',
     outSumCurrency: OutSumCurrency::USD,
     userIP: '127.0.0.1',

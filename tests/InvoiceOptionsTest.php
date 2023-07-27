@@ -6,7 +6,8 @@ declare(strict_types=1);
 
 namespace tests;
 
-use DateTime;
+use DateInterval;
+use DateTimeImmutable;
 use DateTimeZone;
 use netFantom\RobokassaApi\Options\InvoiceOptions;
 use netFantom\RobokassaApi\RobokassaApi;
@@ -24,9 +25,10 @@ class InvoiceOptionsTest extends Unit
             outSum: 10.00,
             invId: 1,
             description: 'Description',
-            expirationDate: (new DateTime('2030-01-01 10:20:30', new DateTimeZone('+3'))),
+            expirationDate: (new DateTimeImmutable('2030-01-01 10:20:30', new DateTimeZone('+3')))
+                ->add(new DateInterval('PT48H')),
         );
-        $this->assertEquals('2030-01-01T10:20:30.0000000+03:00', $invoiceOptions->expirationDate);
+        $this->assertEquals('2030-01-03T10:20:30.0000000+03:00', $invoiceOptions->expirationDate);
     }
 
     public function testParameters(): void

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace netFantom\RobokassaApi\Options;
 
-use DateTime;
+use DateTimeInterface;
 use netFantom\RobokassaApi\Params\Option\{Culture, OutSumCurrency, Receipt};
 
 class InvoiceOptions
@@ -32,17 +32,18 @@ class InvoiceOptions
      * ROBOKASSA и в Электронной квитанции, которую мы выдаём клиенту после успешного платежа.
      * Корректность отображения зависит от необязательного параметра {@see self::$encoding}
      * @param Receipt|string|null $receipt Данные для фискализации
-     * @param DateTime|string|null $expirationDate <pre>
+     * @param DateTimeInterface|string|null $expirationDate <pre>
      * Срок действия счета. Этот параметр необходим, чтобы запретить пользователю
      * оплату позже указанной магазином даты при выставлении счета.
      *
      * <b>Дата и время передаются в формате по стандарту ISO 8601:</b>
      * <i>YYYY-MM-DDThh:mm:ss.fffffff;ZZZZZ</i>
-     * * (РЕКОМЕНДУЮ передавать <b>new DateTime(...)</b> для автоматического форматирования)
+     * * (РЕКОМЕНДУЮ передавать <b>new DateTimeImmutable(...)</b> для автоматического форматирования)
      *
      * <b>Например:</b>
      * <i>2010-02-11T16:07:11.6973153+03:00</i>
-     * * (ИЛИ new <b>DateTime('2010-02-11 16:07:11')</b> для автоматического форматирования)
+     * * (ИЛИ <b>new DateTimeImmutable('2010-02-11 16:07:11', new DateTimeZone('+3'))</b> для автоматического форматирования)
+     * * (ИЛИ <b>(new DateTimeImmutable())->add(new DateInterval('PT48H'))</b> чтобы задать время жизни счета 48 часов)
      *
      * <i>Формат содержит параметры:
      * YYYY — Год, 4 цифры
@@ -114,7 +115,7 @@ class InvoiceOptions
         public readonly int|null $invId,
         public readonly string $description,
         public readonly Receipt|string|null $receipt = null,
-        DateTime|string|null $expirationDate = null,
+        DateTimeInterface|string|null $expirationDate = null,
         public readonly ?string $email = null,
         public readonly ?OutSumCurrency $outSumCurrency = null,
         public readonly ?string $userIP = null,
@@ -124,7 +125,7 @@ class InvoiceOptions
         public readonly ?Culture $culture = null,
         public readonly ?string $signatureValue = null,
     ) {
-        if ($expirationDate instanceof DateTime) {
+        if ($expirationDate instanceof DateTimeInterface) {
             $this->expirationDate = $expirationDate->format("Y-m-d\TH:i:s.0000000P");
         } else {
             $this->expirationDate = $expirationDate;
