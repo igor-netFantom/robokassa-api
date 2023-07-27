@@ -74,6 +74,7 @@ $robokassa->setPsr18Client(new \Http\Discovery\Psr18Client()); // изменен
 
 - [Получение параметров платежа для передачи в Робокассу](#получение-параметров-платежа-для-передачи-в-робокассу)
 - [Получение URL для оплаты счета с указанными параметрами](#получение-url-для-оплаты-счета-с-указанными-параметрами)
+- [Получение параметров платежа в формате `JSON строки`](#получение-параметров-платежа-в-формате-json-строки)
 - [Отправка второго чека](#отправка-второго-чека)
 - [Получение статуса чека](#получение-статуса-чека)
 - [Отправка СМС](#отправка-смс)
@@ -91,9 +92,9 @@ https://docs.robokassa.ru/fiscalization/
 
 ```php
 use netFantom\RobokassaApi\Options\InvoiceOptions;
-use netFantom\RobokassaApi\Params\Option\{Culture,OutSumCurrency,Receipt};
-use netFantom\RobokassaApi\Params\Item\{PaymentMethod,PaymentObject};
-use netFantom\RobokassaApi\Params\Receipt\{Item,Sno,Tax};
+use netFantom\RobokassaApi\Params\Option\{Culture, OutSumCurrency, Receipt};
+use netFantom\RobokassaApi\Params\Item\{PaymentMethod, PaymentObject};
+use netFantom\RobokassaApi\Params\Receipt\{Item, Sno, Tax};
 use netFantom\RobokassaApi\RobokassaApi;
 
 $robokassa = new RobokassaApi(
@@ -159,6 +160,31 @@ $paymentParametersArray = $robokassa->getPaymentParameters(new InvoiceOptions(
 //    'shp_...' => ...,
 //    // ...
 //]
+```
+
+### Получение параметров платежа в формате `JSON строки`
+
+(для использования PopUp iFrame виджета Робокассы `robokassa_iframe.js`)
+
+https://docs.robokassa.ru/iframe/
+
+```php
+<?php
+use netFantom\RobokassaApi\Options\InvoiceOptions;
+use netFantom\RobokassaApi\Params\Option\{Culture, OutSumCurrency, Receipt};
+use netFantom\RobokassaApi\Params\Item\{PaymentMethod, PaymentObject};
+use netFantom\RobokassaApi\Params\Receipt\{Item, Sno, Tax};
+use netFantom\RobokassaApi\RobokassaApi;
+
+$robokassa = new RobokassaApi(
+    // ...
+);
+$paymentParametersJsonString = $robokassa->getPaymentParametersAsJson(new InvoiceOptions(
+    // ...
+));
+?>
+<script type="text/javascript" src="https://auth.robokassa.ru/Merchant/bundle/robokassa_iframe.js"></script>
+<input type="submit" onclick="Robokassa.StartPayment(<?= $paymentParametersJsonString ?>)" value="Оплатить">
 ```
 
 ### Получение URL для оплаты счета с указанными параметрами
