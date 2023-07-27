@@ -60,6 +60,23 @@ interface RobokassaApiInterface
     public function getPaymentParameters(InvoiceOptions $invoiceOptions): array;
 
     /**
+     * Получает параметры платежа для передачи в Робокассу в формате JSON строки для использования
+     * с PopUp iFrame виджетом {@link https://docs.robokassa.ru/iframe/}
+     *
+     * ##Пример:
+     * ```
+     * <script type="text/javascript" src="https://auth.robokassa.ru/Merchant/bundle/robokassa_iframe.js"></script>
+     * <input type="submit"
+     * onclick="Robokassa.StartPayment(<?= $robokassa->getPaymentParametersAsJson($invoiceOptions) ?>)"
+     * value="Оплатить">
+     * ```
+     * @param InvoiceOptions $invoiceOptions
+     * @return string
+     * @throws JsonException
+     */
+    public function getPaymentParametersAsJson(InvoiceOptions $invoiceOptions): string;
+
+    /**
      * Получение URL для оплаты счета с указанными параметрами
      * (GET запрос длиной более 2083 символов может не работать,
      * поэтому счет на оплату с чеком {@see Receipt} рекомендуется

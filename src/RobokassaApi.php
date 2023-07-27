@@ -172,6 +172,14 @@ class RobokassaApi implements RobokassaApiInterface
         ];
     }
 
+    public function getPaymentParametersAsJson(InvoiceOptions $invoiceOptions): string
+    {
+        return json_encode(
+            $this->getPaymentParameters($invoiceOptions),
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+    }
+
     public function smsRequest(int $phone, string $message): RequestInterface
     {
         $requestData = $this->getSendSmsData($phone, $message);

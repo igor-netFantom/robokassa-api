@@ -86,44 +86,45 @@ class RobokassaApiTest extends Unit
             password2: 'password#2',
         );
 
-        $paymentParameters = $robokassa->getPaymentParameters(
-            new InvoiceOptions(
-                outSum: 100,
-                invId: 999,
-                description: 'Description',
-                receipt: new Receipt(
-                    items: [
-                        new Item(
-                            name: 'Название товара 1 (50%)',
-                            quantity: 1,
-                            sum: 100,
-                            tax: Tax::vat10,
-                            payment_method: PaymentMethod::full_payment,
-                            payment_object: PaymentObject::commodity
-                        ),
-                        new Item(
-                            name: 'Название товара 2',
-                            quantity: 3,
-                            sum: 450,
-                            tax: Tax::vat120,
-                            payment_method: PaymentMethod::full_payment,
-                            payment_object: PaymentObject::excise,
-                            nomenclature_code: '04620034587217'
-                        ),
-                    ],
-                    sno: Sno::osn,
-                ),
-                culture: Culture::en,
+        $invoiceOptions = new InvoiceOptions(
+            outSum: 100,
+            invId: 999,
+            description: "Description\"'><b>",
+            receipt: new Receipt(
+                items: [
+                    new Item(
+                        name: 'Название товара 1 (50%)',
+                        quantity: 1,
+                        sum: 100,
+                        tax: Tax::vat10,
+                        payment_method: PaymentMethod::full_payment,
+                        payment_object: PaymentObject::commodity
+                    ),
+                    new Item(
+                        name: "Название товара 2\"'><b>",
+                        quantity: 3,
+                        sum: 450,
+                        tax: Tax::vat120,
+                        payment_method: PaymentMethod::full_payment,
+                        payment_object: PaymentObject::excise,
+                        nomenclature_code: '04620034587217'
+                    ),
+                ],
+                sno: Sno::osn,
             ),
+            culture: Culture::en,
+        );
+        $paymentParameters = $robokassa->getPaymentParameters(
+            $invoiceOptions,
         );
 
         $expectedPaymentParameters = [
             'MerchantLogin' => 'robo-demo',
             'OutSum' => '100.00',
-            'Description' => 'Description',
-            'SignatureValue' => '9da55279722ba167a1384b05a2c5e330',
+            'Description' => "Description\"'><b>",
+            'SignatureValue' => '7c6a95094fa5c3e5e2baf83c8817e8c0',
             'IncCurrLabel' => null,
-            'InvId' => 999,
+            'InvId' => '999',
             'Culture' => 'en',
             'Encoding' => 'utf-8',
             'Email' => null,
@@ -133,12 +134,27 @@ class RobokassaApiTest extends Unit
             'Receipt' => '{"items":['
                 . '{"sum":"100.00","name":"Название товара 1 (50%)","quantity":1,"tax":"vat10",'
                 . '"payment_method":"full_payment","payment_object":"commodity"},'
-                . '{"sum":"450.00","name":"Название товара 2","quantity":3,"tax":"vat120",'
+                . '{"sum":"450.00","name":"Название товара 2\"\'><b>","quantity":3,"tax":"vat120",'
                 . '"payment_method":"full_payment","payment_object":"excise","nomenclature_code":"04620034587217"}'
                 . '],"sno":"osn"}',
             'IsTest' => null,
         ];
         $this->assertEquals($expectedPaymentParameters, $paymentParameters);
+
+        $paymentParametersAsJson = $robokassa->getPaymentParametersAsJson($invoiceOptions);
+        $expectedPaymentParametersAsJson = '{"MerchantLogin":"robo-demo","OutSum":"100.00","Description":"Description\"\'><b>",'
+            . '"SignatureValue":"7c6a95094fa5c3e5e2baf83c8817e8c0","IncCurrLabel":null,"InvId":"999","Culture":"en",'
+            . '"Encoding":"utf-8","Email":null,"ExpirationDate":null,"OutSumCurrency":null,"UserIp":null,'
+            . '"Receipt":"{\"items\":['
+            . '{\"sum\":\"100.00\",\"name\":\"Название товара 1 (50%)\",\"quantity\":1,\"tax\":\"vat10\",'
+            . '\"payment_method\":\"full_payment\",\"payment_object\":\"commodity\"},'
+            . '{\\"sum\\":\\"450.00\\",\\"name\\":\\"Название товара 2\\\\\\"\'><b>\\",\\"quantity\\":3,\\"tax\\":\\"vat120\\",'
+            . '\"payment_method\":\"full_payment\",\"payment_object\":\"excise\",\"nomenclature_code\":\"04620034587217\"}],'
+            . '\"sno\":\"osn\"}","IsTest":null}';
+        $this->assertEquals($expectedPaymentParametersAsJson, $paymentParametersAsJson);
+
+        $decodedJson = json_decode($paymentParametersAsJson, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertEquals($expectedPaymentParameters, $decodedJson);
     }
 
     public function testPaymentReceipt(): void
