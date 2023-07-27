@@ -6,7 +6,7 @@ namespace netFantom\RobokassaApi;
 
 use JsonException;
 use netFantom\RobokassaApi\Options\{InvoiceOptions, ReceiptStatusOptions, SecondReceiptOptions};
-use netFantom\RobokassaApi\Params\Receipt;
+use netFantom\RobokassaApi\Params\Option\Receipt;
 use netFantom\RobokassaApi\Params\Receipt\{Item, Vat};
 use netFantom\RobokassaApi\Results\{InvoicePayResult, ReceiptAttachResult, ReceiptStatusResult, SmsSendResult};
 use Psr\Http\Client\{ClientExceptionInterface, ClientInterface};

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Params;
+namespace netFantom\RobokassaApi\Params\Option;
 
 /**
  * Способ указать валюту, в которой магазин выставляет стоимость заказа.

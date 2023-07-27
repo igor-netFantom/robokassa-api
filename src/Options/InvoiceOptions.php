@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace netFantom\RobokassaApi\Options;
 
 use DateTime;
-use netFantom\RobokassaApi\Params\{Culture, OutSumCurrency, Receipt};
+use netFantom\RobokassaApi\Params\Option\{Culture, OutSumCurrency, Receipt};
 
 class InvoiceOptions
 {

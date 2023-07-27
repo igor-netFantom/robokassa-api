@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Params;
+namespace netFantom\RobokassaApi\Params\Option;
 
 /**
  * Язык общения с клиентом (в соответствии с ISO 3166-1).

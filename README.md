@@ -91,9 +91,9 @@ https://docs.robokassa.ru/fiscalization/
 
 ```php
 use netFantom\RobokassaApi\Options\InvoiceOptions;
-use netFantom\RobokassaApi\Params\{Culture, OutSumCurrency, Receipt};
-use netFantom\RobokassaApi\Params\Item\{PaymentMethod, PaymentObject};
-use netFantom\RobokassaApi\Params\Receipt\{Item, Sno, Tax};
+use netFantom\RobokassaApi\Params\Option\{Culture,OutSumCurrency,Receipt};
+use netFantom\RobokassaApi\Params\Item\{PaymentMethod,PaymentObject};
+use netFantom\RobokassaApi\Params\Receipt\{Item,Sno,Tax};
 use netFantom\RobokassaApi\RobokassaApi;
 
 $robokassa = new RobokassaApi(

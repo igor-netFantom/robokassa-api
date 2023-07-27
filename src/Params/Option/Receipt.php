@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace netFantom\RobokassaApi\Params;
+namespace netFantom\RobokassaApi\Params\Option;
 
 use netFantom\RobokassaApi\Exceptions\InvalidArgumentException;
 use netFantom\RobokassaApi\Params\Receipt\{Item, Sno};
