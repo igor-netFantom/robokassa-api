@@ -77,34 +77,17 @@ class RobokassaApi implements RobokassaApiInterface
     public static function getInvoicePayResultFromRequestArray(array $requestParameters): InvoicePayResult
     {
         return new InvoicePayResult(
-            outSum: $requestParameters['OutSum'] ?? throw new InvalidArgumentException(
-            'OutSum request parameter required'
-        ),
+            outSum: $requestParameters['OutSum']
+            ?? throw new InvalidArgumentException(
+                'OutSum request parameter required'
+            ),
             invId: isset($requestParameters['InvId']) ? (int)$requestParameters['InvId'] : null,
-            signatureValue: $requestParameters['SignatureValue'] ?? throw new InvalidArgumentException(
-            'SignatureValue request parameter required'
-        ),
+            signatureValue: $requestParameters['SignatureValue']
+            ?? throw new InvalidArgumentException(
+                'SignatureValue request parameter required'
+            ),
             userParameters: self::getUserParametersFromRequestArray($requestParameters),
         );
-    }
-
-    /**
-     * Получение пользовательских параметров (shp_...) из массива GET или POST параметров
-     * @param array<string,string> $requestParameters
-     * @return array<string, string>
-     */
-    private static function getUserParametersFromRequestArray(array $requestParameters): array
-    {
-        $userParameters = array_filter(
-            $requestParameters,
-            static fn($key) => str_starts_with(strtolower((string)$key), 'shp_'),
-            ARRAY_FILTER_USE_KEY
-        );
-        $userParametersWithoutPrefix = [];
-        foreach ($userParameters as $index => $userParameter) {
-            $userParametersWithoutPrefix[substr_replace($index, '', 0, 4)] = $userParameter;
-        }
-        return $userParametersWithoutPrefix;
     }
 
     public static function getVatsFromItems(array $items): array
@@ -119,38 +102,6 @@ class RobokassaApi implements RobokassaApiInterface
     public function checkSignature(InvoicePayResult $invoicePayResult): bool
     {
         return $this->getValidSignatureForResult($invoicePayResult) === strtolower($invoicePayResult->signatureValue);
-    }
-
-    /**
-     * Получение правильной подписи для параметров результата {@see InvoicePayResult} от Робокассы
-     */
-    private function getValidSignatureForResult(InvoicePayResult $invoicePayResult): string
-    {
-        $signature = "$invoicePayResult->outSum:$invoicePayResult->invId";
-        $signature .= ":$this->password2";
-        if (!empty($invoicePayResult->userParameters)) {
-            $signature .= ':' . $this->implodeUserParameters($invoicePayResult->userParameters);
-        }
-
-        return strtolower($this->encryptSignature($signature));
-    }
-
-    /**
-     * @param array<array-key, string> $additionalUserParameters
-     * @return string
-     */
-    private function implodeUserParameters(array $additionalUserParameters): string
-    {
-        ksort($additionalUserParameters);
-        foreach ($additionalUserParameters as $key => $value) {
-            $additionalUserParameters[$key] = $key . '=' . $value;
-        }
-        return implode(':', $additionalUserParameters);
-    }
-
-    private function encryptSignature(string $signature): string
-    {
-        return hash($this->hashAlgo, $signature);
     }
 
     public function getPaymentUrl(InvoiceOptions $invoiceOptions): string
@@ -194,43 +145,6 @@ class RobokassaApi implements RobokassaApiInterface
         return $this->getPsr18Client()->createRequest('GET', $requestUri);
     }
 
-    /**
-     * Формирование и кодирование подписи:
-     *
-     * Минимальный вариант подписи до кодирования
-     * MerchantLogin:OutSum:Пароль#1
-     *
-     * Максимальный вариант подписи до кодирования
-     * MerchantLogin:OutSum:InvId:OutSumCurrency:UserIp:Receipt:Пароль#1:Shp_...=...:Shp_...=...
-     */
-    private function generateSignatureForPayment(InvoiceOptions $invoiceOptions): string
-    {
-        $signature = "$this->merchantLogin:$invoiceOptions->outSum:$invoiceOptions->invId";
-        $signature .= isset($invoiceOptions->outSumCurrency) ? ":{$invoiceOptions->outSumCurrency->value}" : '';
-        $signature .= isset($invoiceOptions->userIP) ? ":$invoiceOptions->userIP" : '';
-        $receipt = self::getEncodedReceipt($invoiceOptions);
-        $signature .= isset($receipt) ? ":$receipt" : '';
-        $signature .= ":$this->password1";
-        $userParameters = $invoiceOptions->getFormattedUserParameters();
-        $signature .= !empty($userParameters) ? ':' . $this->implodeUserParameters($userParameters) : '';
-
-        return strtolower($this->encryptSignature($signature));
-    }
-
-    /**
-     * @throws JsonException
-     */
-    private static function getEncodedReceipt(InvoiceOptions $instance): ?string
-    {
-        if (is_string($instance->receipt)) {
-            return $instance->receipt;
-        }
-        return is_null($instance->receipt) ? null : json_encode(
-            $instance->receipt,
-            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-        );
-    }
-
     public function getReceiptAttachResult(ResponseInterface $response): ReceiptAttachResult
     {
         $jsonObject = $this->parseResponseToJsonObject($response);
@@ -239,18 +153,6 @@ class RobokassaApi implements RobokassaApiInterface
             ResultDescription: isset($jsonObject->ResultDescription) ? (string)$jsonObject->ResultDescription : null,
             OpKey: isset($jsonObject->OpKey) ? (string)$jsonObject->OpKey : null,
         );
-    }
-
-    private function parseResponseToJsonObject(ResponseInterface $response): object
-    {
-        /** @var object $jsonObject */
-        $jsonObject = json_decode(
-            (string)$response->getBody(),
-            false,
-            512,
-            JSON_THROW_ON_ERROR
-        );
-        return $jsonObject;
     }
 
     public function getReceiptStatusResult(ResponseInterface $response): ReceiptStatusResult
@@ -320,21 +222,6 @@ class RobokassaApi implements RobokassaApiInterface
         return $encodedSecondReceipt . '.' . $this->generateSignatureForSecondReceipt($encodedSecondReceipt);
     }
 
-    /**
-     * Робокасса требует удаление знаков "=" из результата кодирования base64
-     * @param string $string
-     * @return string
-     */
-    private function clearBase64Encode(string $string): string
-    {
-        return rtrim(base64_encode($string), '=');
-    }
-
-    private function generateSignatureForSecondReceipt(string $encodedSecondReceipt): string
-    {
-        return $this->clearBase64Encode($this->encryptSignature($encodedSecondReceipt . $this->password1));
-    }
-
     public function sendSecondReceiptAttach(SecondReceiptOptions $secondReceiptOptions): ResponseInterface
     {
         $request = $this->secondReceiptAttachRequest($secondReceiptOptions);
@@ -374,5 +261,120 @@ class RobokassaApi implements RobokassaApiInterface
     public function setPsr18Client(?ClientInterface $psr18Client): void
     {
         $this->psr18Client = $psr18Client;
+    }
+
+    /**
+     * Получение пользовательских параметров (shp_...) из массива GET или POST параметров
+     * @param array<string,string> $requestParameters
+     * @return array<string, string>
+     */
+    private static function getUserParametersFromRequestArray(array $requestParameters): array
+    {
+        $userParameters = array_filter(
+            $requestParameters,
+            static fn($key) => str_starts_with(strtolower((string)$key), 'shp_'),
+            ARRAY_FILTER_USE_KEY
+        );
+        $userParametersWithoutPrefix = [];
+        foreach ($userParameters as $index => $userParameter) {
+            $userParametersWithoutPrefix[substr_replace($index, '', 0, 4)] = $userParameter;
+        }
+        return $userParametersWithoutPrefix;
+    }
+
+    /**
+     * Получение правильной подписи для параметров результата {@see InvoicePayResult} от Робокассы
+     */
+    private function getValidSignatureForResult(InvoicePayResult $invoicePayResult): string
+    {
+        $signature = "$invoicePayResult->outSum:$invoicePayResult->invId";
+        $signature .= ":$this->password2";
+        if (!empty($invoicePayResult->userParameters)) {
+            $signature .= ':' . $this->implodeUserParameters($invoicePayResult->userParameters);
+        }
+
+        return strtolower($this->encryptSignature($signature));
+    }
+
+    /**
+     * @param array<array-key, string> $additionalUserParameters
+     * @return string
+     */
+    private function implodeUserParameters(array $additionalUserParameters): string
+    {
+        ksort($additionalUserParameters);
+        foreach ($additionalUserParameters as $key => $value) {
+            $additionalUserParameters[$key] = $key . '=' . $value;
+        }
+        return implode(':', $additionalUserParameters);
+    }
+
+    private function encryptSignature(string $signature): string
+    {
+        return hash($this->hashAlgo, $signature);
+    }
+
+    private function parseResponseToJsonObject(ResponseInterface $response): object
+    {
+        /** @var object $jsonObject */
+        $jsonObject = json_decode(
+            (string)$response->getBody(),
+            false,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+        return $jsonObject;
+    }
+
+    /**
+     * @throws JsonException
+     */
+    private static function getEncodedReceipt(InvoiceOptions $instance): ?string
+    {
+        if (is_string($instance->receipt)) {
+            return $instance->receipt;
+        }
+        return is_null($instance->receipt) ? null : json_encode(
+            $instance->receipt,
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+        );
+    }
+
+    /**
+     * Робокасса требует удаление знаков "=" из результата кодирования base64
+     * @param string $string
+     * @return string
+     */
+    private function clearBase64Encode(string $string): string
+    {
+        return rtrim(base64_encode($string), '=');
+    }
+
+    /**
+     * Формирование и кодирование подписи:
+     *
+     * Минимальный вариант подписи до кодирования
+     * MerchantLogin:OutSum:Пароль#1
+     *
+     * Максимальный вариант подписи до кодирования
+     * MerchantLogin:OutSum:InvId:OutSumCurrency:UserIp:Receipt:Пароль#1:Shp_...=...:Shp_...=...
+     */
+    private function generateSignatureForPayment(InvoiceOptions $invoiceOptions): string
+    {
+        $signature = "$this->merchantLogin:$invoiceOptions->outSum:$invoiceOptions->invId";
+        $signature .= isset($invoiceOptions->outSumCurrency) ? ":{$invoiceOptions->outSumCurrency->value}" : '';
+        $signature .= isset($invoiceOptions->userIP) ? ":$invoiceOptions->userIP" : '';
+        $receipt = self::getEncodedReceipt($invoiceOptions);
+        $signature .= isset($receipt) ? ":$receipt" : '';
+        $signature .= ":$this->password1";
+        $userParameters = $invoiceOptions->getFormattedUserParameters();
+        $signature .= !empty($userParameters) ? ':' . $this->implodeUserParameters($userParameters) : '';
+
+        return strtolower($this->encryptSignature($signature));
+    }
+
+    private function generateSignatureForSecondReceipt(string $encodedSecondReceipt): string
+    {
+        return $this->clearBase64Encode($this->encryptSignature($encodedSecondReceipt . $this->password1));
     }
 }
