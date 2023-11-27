@@ -8,7 +8,10 @@ namespace netFantom\RobokassaApi;
 
 use Http\Discovery\Psr18Client;
 use JsonException;
-use netFantom\RobokassaApi\Exceptions\{MissingRequestFactory, MissingStreamFactory, TooLongSmsMessageException};
+use netFantom\RobokassaApi\Exceptions\{InvalidArgumentException,
+    MissingRequestFactory,
+    MissingStreamFactory,
+    TooLongSmsMessageException};
 use netFantom\RobokassaApi\Options\{InvoiceOptions, ReceiptStatusOptions, SecondReceiptOptions};
 use netFantom\RobokassaApi\Params\Receipt\Vat;
 use netFantom\RobokassaApi\Results\{InvoicePayResult, ReceiptAttachResult, ReceiptStatusResult, SmsSendResult};
@@ -74,9 +77,13 @@ class RobokassaApi implements RobokassaApiInterface
     public static function getInvoicePayResultFromRequestArray(array $requestParameters): InvoicePayResult
     {
         return new InvoicePayResult(
-            outSum: $requestParameters['OutSum'],
+            outSum: $requestParameters['OutSum'] ?? throw new InvalidArgumentException(
+            'OutSum request parameter required'
+        ),
             invId: isset($requestParameters['InvId']) ? (int)$requestParameters['InvId'] : null,
-            signatureValue: $requestParameters['SignatureValue'],
+            signatureValue: $requestParameters['SignatureValue'] ?? throw new InvalidArgumentException(
+            'SignatureValue request parameter required'
+        ),
             userParameters: self::getUserParametersFromRequestArray($requestParameters),
         );
     }
