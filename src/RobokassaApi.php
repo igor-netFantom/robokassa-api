@@ -272,7 +272,7 @@ class RobokassaApi implements RobokassaApiInterface
     {
         $userParameters = array_filter(
             $requestParameters,
-            static fn($key) => str_starts_with(strtolower((string)$key), 'shp_'),
+            static fn($key) => str_starts_with(strtolower($key), 'shp_'),
             ARRAY_FILTER_USE_KEY
         );
         $userParametersWithoutPrefix = [];
