@@ -1,7 +1,7 @@
 {
-    "name": "netfantom/robokassa-api",
+    "name": "maksimego/robokassa-api",
     "type": "library",
-    "description": "Robokassa Api for PHP 8.1",
+    "description": "Fork of Robokassa Api for PHP 8.1",
     "keywords": [
         "robokassa",
         "api",
@@ -11,7 +11,11 @@
     "authors": [
         {
             "name": "Igor Fedorov",
-            "role": "Developer"
+            "role": "Original Developer"
+        },
+        {
+            "name": "Maksim Ego",
+            "role": "Fork Maintainer"
         }
     ],
     "minimum-stability": "stable",

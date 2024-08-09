@@ -109,11 +109,14 @@ class InvoiceOptions
      * Если параметр не передан, то используются региональные настройки браузера покупателя.
      * Для значений отличных от ru или en используется английский язык.
      * @param string|null $signatureValue
+     * @param int|null $previousInvoiceId - айди прошлого платежа, для проведения рекуррентных оплат
+     * доступна только при подверждение такого типа оплат в робокассе
      */
     public function __construct(
         float|string $outSum,
         public readonly int|null $invId,
         public readonly string $description,
+        public readonly int|null $previousInvoiceId = null,
         public readonly Receipt|string|null $receipt = null,
         DateTimeInterface|string|null $expirationDate = null,
         public readonly ?string $email = null,
