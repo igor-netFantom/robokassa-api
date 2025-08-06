@@ -149,7 +149,7 @@ class RobokassaApi implements RobokassaApiInterface
             'MerchantLogin' => $this->merchantLogin,
             'OutSum' => $invoiceOptions->outSum,
             'Description' => $invoiceOptions->description,
-            'PreviousInvoiceID' => $invoiceOptions->previousInvoiceId ?? null,
+            'PreviousInvoiceID' => isset($invoiceOptions->previousInvoiceId) ? (string)$invoiceOptions->previousInvoiceId : null,
             'SignatureValue' => $invoiceOptions->signatureValue ?? $this->generateSignatureForPayment($invoiceOptions),
             'IncCurrLabel' => $invoiceOptions->incCurrLabel,
             'InvId' => isset($invoiceOptions->invId) ? (string)$invoiceOptions->invId : null,
