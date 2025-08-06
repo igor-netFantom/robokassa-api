@@ -27,7 +27,7 @@ class ReceiptAttachResult
     public function __construct(
         public readonly ?string $ResultCode,
         public readonly ?string $ResultDescription,
-        public readonly ?string $OpKey,
+        public readonly ?string $OpKey = null,
     ) {
     }
 }

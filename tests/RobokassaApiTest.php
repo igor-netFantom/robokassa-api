@@ -138,11 +138,13 @@ class RobokassaApiTest extends Unit
                 . '"payment_method":"full_payment","payment_object":"excise","nomenclature_code":"04620034587217"}'
                 . '],"sno":"osn"}',
             'IsTest' => null,
+            'PreviousInvoiceID' => null,
         ];
         $this->assertEquals($expectedPaymentParameters, $paymentParameters);
 
         $paymentParametersAsJson = $robokassa->getPaymentParametersAsJson($invoiceOptions);
         $expectedPaymentParametersAsJson = '{"MerchantLogin":"robo-demo","OutSum":"100.00","Description":"Description\"\'><b>",'
+            . '"PreviousInvoiceID":null,'
             . '"SignatureValue":"7c6a95094fa5c3e5e2baf83c8817e8c0","IncCurrLabel":null,"InvId":"999","Culture":"en",'
             . '"Encoding":"utf-8","Email":null,"ExpirationDate":null,"OutSumCurrency":null,"UserIp":null,'
             . '"Receipt":"{\"items\":['
@@ -303,14 +305,12 @@ class RobokassaApiTest extends Unit
         $this->assertEquals(200, $response->getStatusCode());
         $expectedBodyContent = '{"ResultCode":"1000",'
             . '"ResultDescription":'
-            . '"Exception of type \u0027Robox.Merchant.Util.Exceptions.MerchantNotFoundException\u0027 was thrown.",'
-            . '"OpKey":null}';
+            . '"Exception of type \u0027Robox.Merchant.Util.Exceptions.MerchantNotFoundException\u0027 was thrown."}';
         $this->assertEquals($expectedBodyContent, (string)$response->getBody());
 
         $expectedReceiptAttachResult = new ReceiptAttachResult(
             ResultCode: "1000",
-            ResultDescription: "Exception of type 'Robox.Merchant.Util.Exceptions.MerchantNotFoundException' was thrown.",
-            OpKey: null
+            ResultDescription: "Exception of type 'Robox.Merchant.Util.Exceptions.MerchantNotFoundException' was thrown."
         );
         $receiptAttachResult = $robokassa->getReceiptAttachResult($response);
         $this->assertEquals($expectedReceiptAttachResult, $receiptAttachResult);
