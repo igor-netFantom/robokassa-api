@@ -11,6 +11,10 @@
     "authors": [
         {
             "name": "Igor Fedorov",
+            "role": "Original Developer"
+        },
+        {
+            "name": "Maksim Ego",
             "role": "Developer"
         }
     ],

@@ -109,12 +109,47 @@ class RobokassaApi implements RobokassaApiInterface
         return $this->paymentUrl . '?' . http_build_query($this->getPaymentParameters($invoiceOptions));
     }
 
+    /**
+     * Sends a recurring payment request to the Robokassa API.
+     *
+     * This method constructs and sends a POST request to the Robokassa recurring payment URL.
+     * The request includes the necessary parameters in the request body, encoded as `application/x-www-form-urlencoded`.
+     *
+     * @param array $params The parameters to include in the recurring payment request. These should include all necessary fields
+     *                      such as `MerchantLogin`, `InvoiceID`, `PreviousInvoiceID`, `OutSum`, `Description`, and others required by Robokassa.
+     *
+     * @return \Psr\Http\Message\ResponseInterface The HTTP response returned by the Robokassa API. The response contains the status
+     *                                            and any other relevant information returned by the API.
+     *
+     * @throws \RuntimeException If the returned response does not implement the expected `Psr\Http\Message\ResponseInterface`.
+     */
+    public function sendRecurringPayment(array $params): ResponseInterface
+    {
+        $psr18Client = $this->getPsr18Client();
+
+        $bodyStream = $psr18Client->createStream(http_build_query($params));
+
+        $request = $psr18Client
+            ->createRequest('POST', $this->recurringUrl)
+            ->withHeader('Content-Type', 'application/x-www-form-urlencoded')
+            ->withBody($bodyStream);
+
+        $response = $psr18Client->sendRequest($request);
+
+        if (!$response instanceof ResponseInterface) {
+            throw new \RuntimeException('Returned response does not implement Psr\Http\Message\ResponseInterface');
+        }
+
+        return $response;
+    }
+
     public function getPaymentParameters(InvoiceOptions $invoiceOptions): array
     {
         return [
             'MerchantLogin' => $this->merchantLogin,
             'OutSum' => $invoiceOptions->outSum,
             'Description' => $invoiceOptions->description,
+            'PreviousInvoiceID' => $invoiceOptions->previousInvoiceId ?? null,
             'SignatureValue' => $invoiceOptions->signatureValue ?? $this->generateSignatureForPayment($invoiceOptions),
             'IncCurrLabel' => $invoiceOptions->incCurrLabel,
             'InvId' => isset($invoiceOptions->invId) ? (string)$invoiceOptions->invId : null,
